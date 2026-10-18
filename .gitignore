@@ -1,0 +1,13 @@
+# Local environment
+.env
+
+# Build artifacts
+/tmp/
+/out/
+*.test
+
+# Air live-reload
+build-errors.log
+
+# OS
+.DS_Store

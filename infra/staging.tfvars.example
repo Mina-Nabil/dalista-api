@@ -1,0 +1,27 @@
+# Copy to staging.tfvars (gitignored) and fill in. NEVER commit real secrets.
+
+environment     = "staging"
+aws_region      = "us-east-1"
+domain_name     = "example.com"       # Dalista root domain
+api_subdomain   = "api-staging"
+route53_zone_id = "ZXXXXXXXXXXXXX"     # hosted zone for domain_name
+
+front_end_url = "https://dashboard-staging.example.com"
+
+sentry_dsn = ""                        # fill when Sentry project exists
+
+# GitHub Actions OIDC trust (deploy role).
+#   github_org_id  = gh api orgs/<org> --jq .id
+#   github_repo_id = gh api repos/<org>/<repo> --jq .id
+github_org     = "your-org"
+github_repo    = "dalista-be"
+github_org_id  = "000000"
+github_repo_id = "000000000"
+
+# Integration credentials — leave blank for Phase 0; fill as each phase lands.
+# sms_misr_username            = ""
+# sms_misr_password            = ""
+# sms_misr_sender              = ""
+# fcm_credentials_json         = ""
+# apple_iap_private_key        = ""
+# google_play_credentials_json = ""

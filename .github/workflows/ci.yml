@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master, prod]
+
+env:
+  GO_VERSION: "1.26"
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: dalista_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U test_user -d dalista_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install Goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@v3.27.3
+
+      - name: Run database migrations
+        env:
+          GOOSE_DRIVER: postgres
+          GOOSE_DBSTRING: "postgres://test_user:test_password@localhost:5432/dalista_test?sslmode=disable"
+          GOOSE_MIGRATION_DIR: ./app/repository/migrations
+        run: goose up
+
+      - name: Run tests
+        env:
+          APP_ENV: development
+          DB_HOST: localhost
+          DB_PORT: "5432"
+          DB_USER: test_user
+          DB_PASSWORD: test_password
+          DB_NAME: dalista_test
+          DB_SSLMODE: disable
+          JWT_KEY: ci-test-jwt-secret-key-minimum-32-characters!!
+          JWT_EXPIRY_HOURS: "8"
+          SENTRY_DSN: ""
+        run: go test ./test/... -count=1 -p 1 -v
+
+  build:
+    name: Build Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Verify Swagger docs are in sync
+        run: |
+          go install github.com/swaggo/swag/cmd/swag@v1.16.6
+          swag init --parseDependency --parseInternal -g main.go -o ./docs
+          if ! git diff --quiet -- docs; then
+            echo "::error::docs/ is out of date — run 'make swagger' and commit the result."
+            git diff --stat -- docs
+            exit 1
+          fi
+
+      - name: Build binary
+        run: CGO_ENABLED=0 GOOS=linux go build -o /dev/null ./main.go

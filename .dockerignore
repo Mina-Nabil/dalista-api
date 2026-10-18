@@ -1,0 +1,12 @@
+# Keep the build context small. Source is bind-mounted in dev; the staging
+# build only needs go.mod/go.sum + source, never these.
+.git
+.env
+tmp/
+out/
+build-errors.log
+infra/.terraform/
+infra/**/.terraform/
+*.tfstate
+*.tfstate.*
+.DS_Store

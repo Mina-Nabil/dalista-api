@@ -1,0 +1,24 @@
+#:schema https://json.schemastore.org/any.json
+# Air config for the containerized dev server. Unlike .air.toml it does NOT read
+# ./.env — all config comes from the compose `environment:` block (inherited by
+# the air process and the built binary).
+
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./tmp/main ."
+  bin = "./tmp/main"
+  delay = 1000
+  exclude_dir = ["assets", "tmp", "vendor", "testdata", "docs", "infra"]
+  exclude_regex = ["_test.go"]
+  include_ext = ["go", "tpl", "tmpl", "html"]
+  log = "build-errors.log"
+  stop_on_error = false
+
+[log]
+  main_only = false
+  time = true
+
+[misc]
+  clean_on_exit = false

@@ -1,0 +1,193 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - master # → staging
+      - prod   # → production
+
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: dalista-be
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [[ "${{ github.ref_name }}" == "master" ]]; then
+            echo "environment=staging" >> "$GITHUB_OUTPUT"
+            echo "ecs_cluster=dalista-staging" >> "$GITHUB_OUTPUT"
+            echo "ecs_service=dalista-staging-api" >> "$GITHUB_OUTPUT"
+            echo "migrate_task=dalista-staging-migrate" >> "$GITHUB_OUTPUT"
+            echo "syncperms_task=dalista-staging-syncperms" >> "$GITHUB_OUTPUT"
+          else
+            echo "environment=production" >> "$GITHUB_OUTPUT"
+            echo "ecs_cluster=dalista-production" >> "$GITHUB_OUTPUT"
+            echo "ecs_service=dalista-production-api" >> "$GITHUB_OUTPUT"
+            echo "migrate_task=dalista-production-migrate" >> "$GITHUB_OUTPUT"
+            echo "syncperms_task=dalista-production-syncperms" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # Staging uses AWS_DEPLOY_ROLE_ARN; production uses
+          # AWS_DEPLOY_PRODUCTION_ROLE_ARN. Both are OIDC-assumed roles — no
+          # long-lived AWS keys live in CI.
+          role-to-assume: ${{ github.ref_name == 'master' && secrets.AWS_DEPLOY_ROLE_ARN || secrets.AWS_DEPLOY_PRODUCTION_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        id: image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE_TAG: ${{ steps.env.outputs.environment }}-${{ github.sha }}
+        run: |
+          # ECR tag immutability: push a unique tag per commit only (no *-latest overwrite).
+          IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker build \
+            -f docker/staging/Dockerfile \
+            -t "$IMAGE_URI" \
+            .
+          docker push "$IMAGE_URI"
+          echo "uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
+      - name: Get network configuration
+        id: network
+        run: |
+          # Reuse the ECS service's network config for the one-off RunTask calls.
+          # Compact with `jq -c` so it fits $GITHUB_OUTPUT's single-line name=value form.
+          NETWORK_CONFIG=$(aws ecs describe-services \
+            --cluster ${{ steps.env.outputs.ecs_cluster }} \
+            --services ${{ steps.env.outputs.ecs_service }} \
+            --query 'services[0].networkConfiguration' \
+            --output json | jq -c .)
+          echo "config=$NETWORK_CONFIG" >> "$GITHUB_OUTPUT"
+
+      - name: Register task definitions with new image
+        id: taskdef
+        env:
+          IMAGE_URI: ${{ steps.image.outputs.uri }}
+          ENV: ${{ steps.env.outputs.environment }}
+        run: |
+          register_task_def() {
+            local FAMILY=$1
+            local TASK_DEF_FILE
+            TASK_DEF_FILE=$(mktemp)
+            aws ecs describe-task-definition \
+              --task-definition "$FAMILY" \
+              --query 'taskDefinition' \
+              --output json \
+            | jq --arg IMAGE "$IMAGE_URI" \
+              'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
+               | .containerDefinitions[0].image = $IMAGE' \
+              > "$TASK_DEF_FILE"
+            aws ecs register-task-definition \
+              --cli-input-json "file://${TASK_DEF_FILE}" \
+              --query 'taskDefinition.taskDefinitionArn' \
+              --output text
+            rm -f "$TASK_DEF_FILE"
+          }
+
+          register_task_def "dalista-${ENV}-migrate" >/dev/null
+          register_task_def "dalista-${ENV}-syncperms" >/dev/null
+          API_ARN=$(register_task_def "dalista-${ENV}-api")
+          echo "api_task_def_arn=$API_ARN" >> "$GITHUB_OUTPUT"
+
+      - name: Run database migrations
+        env:
+          CLUSTER: ${{ steps.env.outputs.ecs_cluster }}
+          TASK: ${{ steps.env.outputs.migrate_task }}
+        run: |
+          NETWORK='${{ steps.network.outputs.config }}'
+
+          TASK_ARN=$(aws ecs run-task \
+            --cluster $CLUSTER \
+            --task-definition $TASK \
+            --launch-type FARGATE \
+            --network-configuration "$NETWORK" \
+            --query 'tasks[0].taskArn' \
+            --output text)
+
+          echo "Waiting for migration task $TASK_ARN..."
+          aws ecs wait tasks-stopped --cluster $CLUSTER --tasks $TASK_ARN
+
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster $CLUSTER \
+            --tasks $TASK_ARN \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
+
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "::error::Migration failed with exit code $EXIT_CODE"
+            aws ecs describe-tasks --cluster $CLUSTER --tasks $TASK_ARN \
+              --query 'tasks[0].stoppedReason' --output text
+            exit 1
+          fi
+          echo "Migrations completed successfully."
+
+      - name: Run sync-permissions
+        env:
+          CLUSTER: ${{ steps.env.outputs.ecs_cluster }}
+          TASK: ${{ steps.env.outputs.syncperms_task }}
+        run: |
+          NETWORK='${{ steps.network.outputs.config }}'
+
+          TASK_ARN=$(aws ecs run-task \
+            --cluster $CLUSTER \
+            --task-definition $TASK \
+            --launch-type FARGATE \
+            --network-configuration "$NETWORK" \
+            --query 'tasks[0].taskArn' \
+            --output text)
+
+          echo "Waiting for sync-permissions task $TASK_ARN..."
+          aws ecs wait tasks-stopped --cluster $CLUSTER --tasks $TASK_ARN
+
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster $CLUSTER \
+            --tasks $TASK_ARN \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
+
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "::error::Sync permissions failed with exit code $EXIT_CODE"
+            exit 1
+          fi
+          echo "Permissions synced successfully."
+
+      - name: Deploy to ECS
+        env:
+          CLUSTER: ${{ steps.env.outputs.ecs_cluster }}
+          SERVICE: ${{ steps.env.outputs.ecs_service }}
+          TASK_DEF_ARN: ${{ steps.taskdef.outputs.api_task_def_arn }}
+        run: |
+          aws ecs update-service \
+            --cluster $CLUSTER \
+            --service $SERVICE \
+            --task-definition "$TASK_DEF_ARN" \
+            --force-new-deployment \
+            --no-cli-pager
+
+          echo "Waiting for service to stabilize..."
+          aws ecs wait services-stable --cluster $CLUSTER --services $SERVICE
+          echo "Deployment complete."

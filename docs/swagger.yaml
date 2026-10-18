@@ -1,0 +1,2060 @@
+basePath: /api/v1
+definitions:
+  billingModels.Tier:
+    enum:
+    - free
+    - basic
+    - unlimited
+    type: string
+    x-enum-varnames:
+    - TierFree
+    - TierBasic
+    - TierUnlimited
+  billingServices.OversightRow:
+    properties:
+      billing_provider:
+        type: string
+      current_period_end:
+        type: string
+      email:
+        type: string
+      phone:
+        type: string
+      product_id:
+        type: string
+      status:
+        type: string
+      tier:
+        type: string
+      user_id:
+        type: string
+    type: object
+  billingServices.StorageStatus:
+    properties:
+      available_bytes:
+        type: integer
+      bytes_used:
+        type: integer
+      quota_bytes:
+        description: -1 when unlimited (not used today; max tier is 50 GB)
+        type: integer
+      tier:
+        $ref: '#/definitions/billingModels.Tier'
+    type: object
+  billingServices.SubscriptionSummary:
+    properties:
+      by_provider:
+        additionalProperties:
+          type: integer
+        type: object
+      by_status:
+        additionalProperties:
+          type: integer
+        type: object
+      by_tier:
+        additionalProperties:
+          type: integer
+        type: object
+      total:
+        type: integer
+    type: object
+  forms.AppleVerifyForm:
+    properties:
+      transaction_id:
+        type: string
+    required:
+    - transaction_id
+    type: object
+  forms.CategoryForm:
+    properties:
+      name:
+        example: Groceries
+        maxLength: 255
+        type: string
+    required:
+    - name
+    type: object
+  forms.ChangeRoleForm:
+    properties:
+      role:
+        enum:
+        - editor
+        - viewer
+        example: viewer
+        type: string
+    required:
+    - role
+    type: object
+  forms.CommentForm:
+    properties:
+      body:
+        example: Grab the 2L one
+        maxLength: 2000
+        type: string
+    required:
+    - body
+    type: object
+  forms.CreateItemForm:
+    properties:
+      attributes:
+        additionalProperties: true
+        type: object
+      brand:
+        type: string
+      category_id:
+        type: string
+      name:
+        example: Milk
+        maxLength: 255
+        type: string
+      notes:
+        type: string
+      price:
+        example: 3.99
+        type: number
+    required:
+    - name
+    type: object
+  forms.CreateListForm:
+    properties:
+      category_id:
+        type: string
+      grouped_list_id:
+        type: string
+      is_periodic:
+        type: boolean
+      is_public:
+        type: boolean
+      name:
+        example: Weekly groceries
+        maxLength: 255
+        type: string
+    required:
+    - name
+    type: object
+  forms.FacebookAuthForm:
+    properties:
+      access_token:
+        type: string
+    required:
+    - access_token
+    type: object
+  forms.GenerateTodayForm:
+    properties:
+      exclude_item_ids:
+        items:
+          type: string
+        type: array
+    type: object
+  forms.GoogleAuthForm:
+    properties:
+      id_token:
+        type: string
+    required:
+    - id_token
+    type: object
+  forms.GoogleVerifyForm:
+    properties:
+      purchase_token:
+        type: string
+      subscription_id:
+        example: dalista.basic.monthly
+        type: string
+    required:
+    - purchase_token
+    - subscription_id
+    type: object
+  forms.GroupedListForm:
+    properties:
+      name:
+        example: Home
+        maxLength: 255
+        type: string
+    required:
+    - name
+    type: object
+  forms.LoginEmailForm:
+    properties:
+      email:
+        example: jane@example.com
+        type: string
+      password:
+        example: hunter2go
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  forms.NeedToBuyForm:
+    properties:
+      need_to_buy:
+        example: true
+        type: boolean
+    required:
+    - need_to_buy
+    type: object
+  forms.PhoneForm:
+    properties:
+      phone:
+        example: "+201001234567"
+        type: string
+    required:
+    - phone
+    type: object
+  forms.RefreshForm:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  forms.RegisterEmailForm:
+    properties:
+      email:
+        example: jane@example.com
+        type: string
+      password:
+        example: hunter2go
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  forms.ShareListForm:
+    properties:
+      phone:
+        example: "+201001234567"
+        type: string
+      role:
+        enum:
+        - editor
+        - viewer
+        example: editor
+        type: string
+    required:
+    - phone
+    - role
+    type: object
+  forms.UpdateItemForm:
+    properties:
+      attributes:
+        additionalProperties: true
+        type: object
+      brand:
+        type: string
+      category_id:
+        type: string
+      clear_category:
+        type: boolean
+      name:
+        maxLength: 255
+        type: string
+      notes:
+        type: string
+      price:
+        type: number
+    type: object
+  forms.UpdateListForm:
+    properties:
+      category_id:
+        type: string
+      clear_category:
+        type: boolean
+      clear_grouped_list:
+        type: boolean
+      grouped_list_id:
+        type: string
+      is_periodic:
+        type: boolean
+      is_public:
+        type: boolean
+      name:
+        maxLength: 255
+        type: string
+    type: object
+  forms.UpdateProfileForm:
+    properties:
+      display_name:
+        example: Jane D.
+        type: string
+      notification_prefs:
+        additionalProperties: true
+        type: object
+      picture_url:
+        example: https://cdn.example.com/u/jane.png
+        type: string
+    type: object
+  forms.VerifyOTPForm:
+    properties:
+      code:
+        example: "004213"
+        type: string
+      phone:
+        example: "+201001234567"
+        type: string
+    required:
+    - code
+    - phone
+    type: object
+  healthHandlers.HealthResponse:
+    properties:
+      db:
+        example: up
+        type: string
+      status:
+        example: ok
+        type: string
+    type: object
+  resources.ActivityEventResource:
+    properties:
+      action:
+        type: string
+      actor_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      list_id:
+        type: string
+      payload:
+        additionalProperties: true
+        type: object
+      target_id:
+        type: string
+      target_type:
+        type: string
+    type: object
+  resources.AuthResource:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        example: 28800
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        example: Bearer
+        type: string
+      user:
+        $ref: '#/definitions/resources.UserResource'
+    type: object
+  resources.CategoryResource:
+    properties:
+      id:
+        type: string
+      is_owned:
+        type: boolean
+      is_system:
+        type: boolean
+      name:
+        type: string
+    type: object
+  resources.CommentResource:
+    properties:
+      author_id:
+        type: string
+      body:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      is_system:
+        type: boolean
+      item_id:
+        type: string
+    type: object
+  resources.GroupedListResource:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  resources.ItemResource:
+    properties:
+      attributes:
+        additionalProperties: true
+        type: object
+      brand:
+        type: string
+      category_id:
+        type: string
+      id:
+        type: string
+      in_misc:
+        type: boolean
+      list_id:
+        type: string
+      name:
+        type: string
+      need_to_buy:
+        type: boolean
+      notes:
+        type: string
+      price:
+        type: number
+    type: object
+  resources.ListResource:
+    properties:
+      category_id:
+        type: string
+      grouped_list_id:
+        type: string
+      id:
+        type: string
+      is_periodic:
+        type: boolean
+      is_public:
+        type: boolean
+      name:
+        type: string
+    type: object
+  resources.ListVariantResource:
+    properties:
+      generated_at:
+        type: string
+      generated_by:
+        type: string
+      id:
+        type: string
+      item_count:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/resources.VariantItemResource'
+        type: array
+      periodic_list_id:
+        type: string
+      title:
+        type: string
+    type: object
+  resources.ProfileResource:
+    properties:
+      display_name:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      notification_prefs:
+        additionalProperties: true
+        type: object
+      phone:
+        type: string
+      phone_verified:
+        type: boolean
+      picture_url:
+        type: string
+    type: object
+  resources.ShareResultResource:
+    properties:
+      kind:
+        description: '"share" or "invite"'
+        type: string
+      list_id:
+        type: string
+      phone:
+        type: string
+      role:
+        type: string
+      user_id:
+        type: string
+    type: object
+  resources.SharedListResource:
+    properties:
+      category_id:
+        type: string
+      grouped_list_id:
+        type: string
+      id:
+        type: string
+      is_periodic:
+        type: boolean
+      is_public:
+        type: boolean
+      name:
+        type: string
+      role:
+        type: string
+    type: object
+  resources.SubscriptionResource:
+    properties:
+      billing_provider:
+        type: string
+      current_period_end:
+        type: string
+      entitled:
+        type: boolean
+      product_id:
+        type: string
+      status:
+        type: string
+      tier:
+        type: string
+    type: object
+  resources.UserResource:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      phone:
+        type: string
+      phone_verified:
+        type: boolean
+      role:
+        type: string
+    type: object
+  resources.VariantItemResource:
+    properties:
+      attributes:
+        additionalProperties: true
+        type: object
+      brand:
+        type: string
+      category_id:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      notes:
+        type: string
+      price:
+        type: number
+      source_item_id:
+        type: string
+    type: object
+  responses.ErrorResponse:
+    properties:
+      error:
+        example: error message
+        type: string
+    type: object
+  responses.ValidationErrorResponse:
+    properties:
+      errors:
+        example:
+        - phone is invalid
+        - email is invalid
+        items:
+          type: string
+        type: array
+    type: object
+  sharingServices.Collaborator:
+    properties:
+      email:
+        type: string
+      phone:
+        type: string
+      role:
+        type: string
+      user_id:
+        type: string
+    type: object
+  sharingServices.Collaborators:
+    properties:
+      collaborators:
+        items:
+          $ref: '#/definitions/sharingServices.Collaborator'
+        type: array
+      invites:
+        items:
+          $ref: '#/definitions/sharingServices.Invite'
+        type: array
+    type: object
+  sharingServices.Invite:
+    properties:
+      id:
+        type: string
+      phone:
+        type: string
+      role:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    name: Dalista API Support
+  description: RESTful API for the Dalista shopping-list / shop-catalog sharing application.
+  license:
+    name: Proprietary
+  termsOfService: http://swagger.io/terms/
+  title: Dalista API
+  version: "1.0"
+paths:
+  /admin/subscriptions:
+    get:
+      description: Subscriptions joined to owner contact fields, optionally filtered
+        by tier and billing rail.
+      parameters:
+      - description: Filter by tier (free/basic/unlimited)
+        in: query
+        name: tier
+        type: string
+      - description: Filter by billing rail (apple_iap/google_play/stripe)
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/billingServices.OversightRow'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List subscriptions (admin)
+      tags:
+      - billing-admin
+  /admin/subscriptions/summary:
+    get:
+      description: Counts of subscriptions by tier, billing rail, and status for the
+        dashboard.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/billingServices.SubscriptionSummary'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Subscription summary (admin)
+      tags:
+      - billing-admin
+  /auth/facebook:
+    post:
+      consumes:
+      - application/json
+      description: Verifies a Facebook access token server-side, then signs in or
+        creates the account. Returns access + refresh tokens.
+      parameters:
+      - description: Facebook access token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.FacebookAuthForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.AuthResource'
+        "401":
+          description: Invalid token
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "503":
+          description: Facebook OAuth not configured
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Sign in / sign up with Facebook
+      tags:
+      - auth
+  /auth/google:
+    post:
+      consumes:
+      - application/json
+      description: Verifies a Google ID token server-side, then signs in or creates
+        the account. Returns access + refresh tokens.
+      parameters:
+      - description: Google ID token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.GoogleAuthForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.AuthResource'
+        "401":
+          description: Invalid token
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "503":
+          description: Google OAuth not configured
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Sign in / sign up with Google
+      tags:
+      - auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.LoginEmailForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.AuthResource'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ValidationErrorResponse'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "403":
+          description: Account deactivated
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Sign in with email & password
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Stateless logout. Tokens are not server-side revocable in v1; the
+        client discards them. Endpoint exists for a consistent contract and future
+        revocation.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: logged out'
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Logout
+      tags:
+      - auth
+  /auth/otp/request:
+    post:
+      consumes:
+      - application/json
+      description: Sends a one-time code to the phone number. No account required
+        — a new one is created on verify.
+      parameters:
+      - description: Phone number (E.164)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.PhoneForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: code sent'
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ValidationErrorResponse'
+      summary: Request a phone sign-in OTP
+      tags:
+      - auth
+  /auth/otp/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verifies the code and signs in (creating the account on first use).
+        Returns access + refresh tokens.
+      parameters:
+      - description: Phone + code
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.VerifyOTPForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.AuthResource'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ValidationErrorResponse'
+        "401":
+          description: Invalid code
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "429":
+          description: Too many attempts
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Verify a phone sign-in OTP
+      tags:
+      - auth
+  /auth/phone/request:
+    post:
+      consumes:
+      - application/json
+      description: For an authenticated user who signed up via email/Google/Facebook
+        — sends an OTP to the phone they want to verify.
+      parameters:
+      - description: Phone number (E.164)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.PhoneForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: code sent'
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "409":
+          description: Phone already in use
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Request a phone-verification OTP (post-signup)
+      tags:
+      - auth
+  /auth/phone/verify:
+    post:
+      consumes:
+      - application/json
+      description: Confirms the OTP and marks the authenticated user's phone verified.
+      parameters:
+      - description: Phone + code
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.VerifyOTPForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.ProfileResource'
+        "401":
+          description: Invalid code
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "409":
+          description: Phone already in use
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Verify a phone number (post-signup)
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Exchanges a valid refresh token for a new access + refresh token
+        pair.
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.RefreshForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.AuthResource'
+        "401":
+          description: Invalid or expired refresh token
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Refresh tokens
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates an email/password account and returns access + refresh
+        tokens. Phone verification is a separate post-signup step.
+      parameters:
+      - description: Credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.RegisterEmailForm'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/resources.AuthResource'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ValidationErrorResponse'
+        "409":
+          description: Email already registered
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Sign up with email & password
+      tags:
+      - auth
+  /billing/apple/notifications:
+    post:
+      consumes:
+      - application/json
+      description: Apple delivers a JWS `signedPayload`; verified against the x5c
+        chain, then the subscription state is synced. Public endpoint (authenticity
+        is the signature).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: acknowledged
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "401":
+          description: Invalid signature
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: App Store Server Notifications V2 webhook
+      tags:
+      - billing-webhooks
+  /billing/apple/verify:
+    post:
+      consumes:
+      - application/json
+      description: Server-side validation of a StoreKit transaction via the App Store
+        Server API, then activates the tier. The client never self-reports entitlement.
+      parameters:
+      - description: Transaction id
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.AppleVerifyForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.SubscriptionResource'
+        "402":
+          description: Purchase not valid
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "503":
+          description: Apple billing not configured
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Verify an Apple IAP purchase
+      tags:
+      - billing
+  /billing/google/rtdn:
+    post:
+      consumes:
+      - application/json
+      description: Decodes the Pub/Sub envelope, re-verifies the purchase token against
+        the Play Developer API (the real trust boundary), then syncs subscription
+        state. Public endpoint.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: acknowledged
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Google Play Real-time Developer Notifications (Pub/Sub push)
+      tags:
+      - billing-webhooks
+  /billing/google/verify:
+    post:
+      consumes:
+      - application/json
+      description: Server-side validation of a Play Billing purchase token via the
+        Play Developer API, then activates the tier.
+      parameters:
+      - description: Purchase token + subscription id
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.GoogleVerifyForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.SubscriptionResource'
+        "402":
+          description: Purchase not valid
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "503":
+          description: Google billing not configured
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Verify a Google Play purchase
+      tags:
+      - billing
+  /billing/storage:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/billingServices.StorageStatus'
+      security:
+      - BearerAuth: []
+      summary: Get my storage usage vs. quota
+      tags:
+      - billing
+  /billing/subscription:
+    get:
+      description: Returns the caller's current subscription (or the implicit free
+        tier).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.SubscriptionResource'
+      security:
+      - BearerAuth: []
+      summary: Get my subscription
+      tags:
+      - billing
+  /categories:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/resources.CategoryResource'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List categories (own + system defaults)
+      tags:
+      - categories
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Category
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.CategoryForm'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/resources.CategoryResource'
+      security:
+      - BearerAuth: []
+      summary: Create a category
+      tags:
+      - categories
+  /categories/{id}:
+    delete:
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a category
+      tags:
+      - categories
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Category
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.CategoryForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.CategoryResource'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Rename a category
+      tags:
+      - categories
+  /comments/{id}:
+    delete:
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a comment (author or list owner)
+      tags:
+      - comments
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Comment body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.CommentForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.CommentResource'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Edit a comment (author only)
+      tags:
+      - comments
+  /exports/category-interest:
+    get:
+      description: Per-user counts of owned items/lists by category. First cut — Phase
+        7 adds starred public lists.
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: CSV file
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Export category interest as CSV (admin)
+      tags:
+      - exports
+  /grouped-lists:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/resources.GroupedListResource'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List grouped lists
+      tags:
+      - grouped-lists
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Grouped list
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.GroupedListForm'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/resources.GroupedListResource'
+      security:
+      - BearerAuth: []
+      summary: Create a grouped list
+      tags:
+      - grouped-lists
+  /grouped-lists/{id}:
+    delete:
+      parameters:
+      - description: Grouped list ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a grouped list (nested lists become standalone)
+      tags:
+      - grouped-lists
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Grouped list ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Grouped list
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.GroupedListForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.GroupedListResource'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Rename a grouped list
+      tags:
+      - grouped-lists
+  /health:
+    get:
+      description: Returns 200 when the API and its database are reachable, 503 otherwise.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/healthHandlers.HealthResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/healthHandlers.HealthResponse'
+      summary: Health check
+      tags:
+      - health
+  /items/{id}:
+    delete:
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an item
+      tags:
+      - items
+    get:
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.ItemResource'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an item
+      tags:
+      - items
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.UpdateItemForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.ItemResource'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an item (clear_category moves it to MISC)
+      tags:
+      - items
+  /items/{id}/comments:
+    get:
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/resources.CommentResource'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List an item's comments
+      tags:
+      - comments
+    post:
+      consumes:
+      - application/json
+      description: Any list member may comment, including viewers. Records a comment_added
+        activity event.
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Comment body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.CommentForm'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/resources.CommentResource'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Comment on an item
+      tags:
+      - comments
+  /items/{id}/need-to-buy:
+    put:
+      consumes:
+      - application/json
+      description: Editor+ on a periodic list. Records a state transition and an auto
+        system comment ("Marked as need to buy" / "We have enough").
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: need_to_buy
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.NeedToBuyForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.ItemResource'
+        "400":
+          description: Not a periodic list
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Toggle an item's need-to-buy state (periodic lists)
+      tags:
+      - periodic
+  /lists:
+    get:
+      parameters:
+      - description: Filter by grouped list ID
+        in: query
+        name: grouped_list_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/resources.ListResource'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List lists (optionally filtered by grouped list)
+      tags:
+      - lists
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: List
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.CreateListForm'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/resources.ListResource'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a list (standalone or nested)
+      tags:
+      - lists
+  /lists/{id}:
+    delete:
+      parameters:
+      - description: List ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a list (and its items)
+      tags:
+      - lists
+    get:
+      parameters:
+      - description: List ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.ListResource'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a list
+      tags:
+      - lists
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: List ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.UpdateListForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.ListResource'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a list
+      tags:
+      - lists
+  /lists/{id}/collaborators:
+    get:
+      parameters:
+      - description: List ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/sharingServices.Collaborators'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List a list's collaborators (+ invites, for the owner)
+      tags:
+      - sharing
+  /lists/{id}/invites/{inviteId}:
+    delete:
+      parameters:
+      - description: List ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Pending invite ID
+        in: path
+        name: inviteId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cancel a pending invite (owner only)
+      tags:
+      - sharing
+  /lists/{id}/items:
+    get:
+      parameters:
+      - description: List ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Only MISC (uncategorized) items
+        in: query
+        name: misc
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/resources.ItemResource'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List items in a list
+      tags:
+      - items
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: List ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Item
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.CreateItemForm'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/resources.ItemResource'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add an item to a list (omit category_id for MISC)
+      tags:
+      - items
+  /lists/{id}/shares:
+    post:
+      consumes:
+      - application/json
+      description: Creates an immediate share if the phone belongs to a registered
+        user, else a pending invite auto-attached when that number is verified. Enforces
+        the owner's tier per-list user cap.
+      parameters:
+      - description: List ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Phone + role
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.ShareListForm'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/resources.ShareResultResource'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "409":
+          description: Per-list cap reached
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Share a list by phone (owner only)
+      tags:
+      - sharing
+  /lists/{id}/shares/{userId}:
+    delete:
+      parameters:
+      - description: List ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Collaborator user ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke a collaborator (owner only)
+      tags:
+      - sharing
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: List ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Collaborator user ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Role
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.ChangeRoleForm'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Change a collaborator's role (owner only)
+      tags:
+      - sharing
+  /lists/{id}/today:
+    get:
+      description: Returns the periodic list's items currently marked need-to-buy
+        — the candidate set to confirm/exclude before generating a variant.
+      parameters:
+      - description: Periodic list ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/resources.ItemResource'
+            type: array
+        "400":
+          description: Not a periodic list
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Review items for "today's list"
+      tags:
+      - periodic
+    post:
+      consumes:
+      - application/json
+      description: Snapshots the current need-to-buy items (minus any excluded, which
+        are marked "enough") into a new dated ListVariant.
+      parameters:
+      - description: Periodic list ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Items to exclude
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/forms.GenerateTodayForm'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/resources.ListVariantResource'
+        "400":
+          description: Not a periodic list
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Generate "today's list" (a dated variant)
+      tags:
+      - periodic
+  /lists/{id}/variants:
+    get:
+      parameters:
+      - description: Periodic list ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/resources.ListVariantResource'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List a periodic list's variants (history)
+      tags:
+      - periodic
+  /profile:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.ProfileResource'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get my profile
+      tags:
+      - profile
+    put:
+      consumes:
+      - application/json
+      description: Partial update — only provided fields change.
+      parameters:
+      - description: Fields to update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.UpdateProfileForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.ProfileResource'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update my profile
+      tags:
+      - profile
+  /shared-lists:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/resources.SharedListResource'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Lists shared with me
+      tags:
+      - sharing
+  /timeline:
+    get:
+      description: Chronological feed of activity across the lists you can access,
+        newest first. Paginate with `before` (RFC3339).
+      parameters:
+      - description: Max events (1-100, default 50)
+        in: query
+        name: limit
+        type: integer
+      - description: Return events older than this RFC3339 timestamp
+        in: query
+        name: before
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/resources.ActivityEventResource'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Activity timeline (access-scoped)
+      tags:
+      - activity
+  /variants/{id}:
+    get:
+      parameters:
+      - description: Variant ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.ListVariantResource'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a variant with its items
+      tags:
+      - periodic
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer " followed by your access token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
