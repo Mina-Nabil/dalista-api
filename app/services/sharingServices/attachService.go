@@ -8,6 +8,7 @@ import (
 	"dalista/dalista-be/api/server/logger"
 	"dalista/dalista-be/app/repository"
 	sharingModels "dalista/dalista-be/app/repository/models/sharingModels"
+	notificationServices "dalista/dalista-be/app/services/notificationServices"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -57,6 +58,14 @@ func AttachPendingInvites(ctx context.Context, userID uuid.UUID, phone string) (
 			continue // best-effort; don't block sign-in on one bad invite
 		}
 		attached++
+		// Push triggers (best-effort): tell the new member they were added, and
+		// tell the inviter their invite was accepted.
+		notificationServices.NotifySafe(ctx, userID, notificationServices.TypeAddedToList,
+			"You've been added to a list", "A list you were invited to is now in your account.",
+			map[string]string{"list_id": inv.ListID.String(), "role": string(inv.Role)})
+		notificationServices.NotifySafe(ctx, inv.InvitedBy, notificationServices.TypeInviteAccepted,
+			"Invite accepted", "Someone you invited has joined a shared list.",
+			map[string]string{"list_id": inv.ListID.String(), "user_id": userID.String()})
 	}
 	return attached, nil
 }

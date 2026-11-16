@@ -14,7 +14,7 @@ import (
 // CategoryInterestExport godoc
 //
 //	@Summary	Export category interest as CSV (admin)
-//	@Description	Per-user counts of owned items/lists by category. First cut — Phase 7 adds starred public lists.
+//	@Description	Per-user counts of owned items/lists and starred public lists, by category.
 //	@Tags		exports
 //	@Security	BearerAuth
 //	@Produce	text/csv
@@ -39,11 +39,11 @@ func CategoryInterestExport(c *gin.Context) {
 	c.Header("Content-Disposition", `attachment; filename="category-interest.csv"`)
 
 	w := csv.NewWriter(c.Writer)
-	_ = w.Write([]string{"user_id", "email", "phone", "category", "item_count", "list_count"})
+	_ = w.Write([]string{"user_id", "email", "phone", "category", "item_count", "list_count", "starred_count"})
 	for _, r := range rows {
 		_ = w.Write([]string{
 			r.UserID, r.Email, r.Phone, r.Category,
-			strconv.Itoa(r.ItemCount), strconv.Itoa(r.ListCount),
+			strconv.Itoa(r.ItemCount), strconv.Itoa(r.ListCount), strconv.Itoa(r.StarredCount),
 		})
 	}
 	w.Flush()

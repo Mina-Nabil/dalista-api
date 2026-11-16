@@ -15,17 +15,22 @@ import (
 
 // ListInput carries the mutable fields for creating/updating a List.
 type ListInput struct {
-	Name          string
-	GroupedListID *uuid.UUID
-	CategoryID    *uuid.UUID
-	IsPublic      *bool
-	IsPeriodic    *bool
+	Name                 string
+	GroupedListID        *uuid.UUID
+	CategoryID           *uuid.UUID
+	IsPublic             *bool
+	IsPeriodic           *bool
+	SourcePeriodicListID *uuid.UUID
 }
 
 // ListLists returns the caller's lists, optionally filtered to a grouped list.
 // When groupedListID is nil, all of the caller's lists are returned.
 func ListLists(ctx context.Context, userID uuid.UUID, groupedListID *uuid.UUID) ([]listModels.List, error) {
-	q := repository.GetDB().WithContext(ctx).Where("owner_id = ?", userID)
+	// Exclude generated "today's lists" — they're shown nested under their
+	// parent periodic list, not in the main feed.
+	q := repository.GetDB().WithContext(ctx).
+		Where("owner_id = ?", userID).
+		Where("source_periodic_list_id IS NULL")
 	if groupedListID != nil {
 		q = q.Where("grouped_list_id = ?", *groupedListID)
 	}
@@ -46,10 +51,11 @@ func CreateList(ctx context.Context, userID uuid.UUID, in ListInput) (*listModel
 		return nil, err
 	}
 	list := &listModels.List{
-		OwnerID:       userID,
-		GroupedListID: in.GroupedListID,
-		CategoryID:    in.CategoryID,
-		Name:          strings.TrimSpace(in.Name),
+		OwnerID:              userID,
+		GroupedListID:        in.GroupedListID,
+		CategoryID:           in.CategoryID,
+		SourcePeriodicListID: in.SourcePeriodicListID,
+		Name:                 strings.TrimSpace(in.Name),
 	}
 	if in.IsPublic != nil {
 		list.IsPublic = *in.IsPublic

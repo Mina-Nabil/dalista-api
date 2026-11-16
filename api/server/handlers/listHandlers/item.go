@@ -78,9 +78,13 @@ func CreateItem(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category_id"})
 		return
 	}
-	attrs, err := marshalAttributes(form.Attributes)
+	extra, err := marshalExtra(form.Extra)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid attributes"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid extra"})
+		return
+	}
+	if !validURLField(form.URL) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid url"})
 		return
 	}
 	item, err := listServices.CreateItem(c.Request.Context(), uid, listID, listServices.ItemInput{
@@ -89,7 +93,12 @@ func CreateItem(c *gin.Context) {
 		Brand:      form.Brand,
 		Price:      form.Price,
 		Notes:      form.Notes,
-		Attributes: attrs,
+		URL:        form.URL,
+		Location:   form.Location,
+		Facebook:   form.Facebook,
+		Instagram:  form.Instagram,
+		Phone:      form.Phone,
+		Extra:      extra,
 	})
 	if err != nil {
 		mapErr(c, err)
@@ -162,9 +171,13 @@ func UpdateItem(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category_id"})
 		return
 	}
-	attrs, err := marshalAttributes(form.Attributes)
+	extra, err := marshalExtra(form.Extra)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid attributes"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid extra"})
+		return
+	}
+	if !validURLField(form.URL) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid url"})
 		return
 	}
 	in := listServices.ItemInput{
@@ -172,7 +185,12 @@ func UpdateItem(c *gin.Context) {
 		Brand:      form.Brand,
 		Price:      form.Price,
 		Notes:      form.Notes,
-		Attributes: attrs,
+		URL:        form.URL,
+		Location:   form.Location,
+		Facebook:   form.Facebook,
+		Instagram:  form.Instagram,
+		Phone:      form.Phone,
+		Extra:      extra,
 	}
 	if form.Name != nil {
 		in.Name = *form.Name
@@ -194,6 +212,44 @@ func UpdateItem(c *gin.Context) {
 //	@Success	204	"No Content"
 //	@Failure	404	{object}	responses.ErrorResponse
 //	@Router		/items/{id} [delete]
+// SetBought godoc
+//
+//	@Summary	Toggle an item's bought/included checkbox
+//	@Description	Editor+. Generic todo-style "bought / included" state, used on today's lists and other non-periodic lists.
+//	@Tags		items
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Produce	json
+//	@Param		id		path		string			true	"Item ID"
+//	@Param		request	body		forms.BoughtForm	true	"is_bought"
+//	@Success	200		{object}	resources.ItemResource
+//	@Failure	403		{object}	responses.ErrorResponse
+//	@Router		/items/{id}/bought [put]
+func SetBought(c *gin.Context) {
+	uid, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+	if !middlewares.AbortIfCant(c, listServices.PermUpdateItem) {
+		return
+	}
+	id, ok := parsePathUUID(c, "id")
+	if !ok {
+		return
+	}
+	var form forms.BoughtForm
+	if err := c.ShouldBindJSON(&form); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"errors": utils.FormatValidationErrors(err)})
+		return
+	}
+	item, err := listServices.SetBought(c.Request.Context(), uid, id, *form.IsBought)
+	if err != nil {
+		mapErr(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, resources.ItemFromModel(item))
+}
+
 func DeleteItem(c *gin.Context) {
 	uid, ok := currentUserID(c)
 	if !ok {

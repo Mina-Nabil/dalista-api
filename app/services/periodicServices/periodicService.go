@@ -11,6 +11,7 @@ import (
 	periodicModels "dalista/dalista-be/app/repository/models/periodicModels"
 	activityServices "dalista/dalista-be/app/services/activityServices"
 	listServices "dalista/dalista-be/app/services/listServices"
+	notificationServices "dalista/dalista-be/app/services/notificationServices"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -54,6 +55,14 @@ func ToggleNeedToBuy(ctx context.Context, userID, itemID uuid.UUID, need bool) (
 	activityServices.RecordSafe(ctx, list.ID, userID, activityServices.ActionItemUpdated, "item", &itemID,
 		map[string]interface{}{"name": item.Name, "need_to_buy": need})
 
+	// Push trigger (best-effort): when an item is marked need-to-buy, tell the
+	// other list members. "Enough" transitions are intentionally not notified.
+	if need {
+		notificationServices.NotifyListMembers(ctx, list.ID, userID, notificationServices.TypeNeedToBuy,
+			"Need to buy", item.Name+" was marked as need to buy.",
+			map[string]string{"list_id": list.ID.String(), "item_id": itemID.String()})
+	}
+
 	item.NeedToBuy = need
 	return item, nil
 }
@@ -87,7 +96,7 @@ func GenerateToday(ctx context.Context, userID, listID uuid.UUID, excludeIDs []u
 	}
 
 	var candidates []listModels.Item
-	if err := repository.GetDB().WithContext(ctx).
+	if err := repository.GetDB().WithContext(ctx).Preload("Attributes").
 		Where("list_id = ? AND need_to_buy = TRUE", listID).Order("created_at ASC").Find(&candidates).Error; err != nil {
 		return nil, err
 	}
@@ -130,7 +139,7 @@ func GenerateToday(ctx context.Context, userID, listID uuid.UUID, excludeIDs []u
 				Price:        it.Price,
 				CategoryID:   it.CategoryID,
 				Notes:        it.Notes,
-				Attributes:   it.Attributes,
+				Attributes:   listServices.FlattenAttributes(it.Attributes),
 			}
 			if err := tx.Create(snap).Error; err != nil {
 				return err
@@ -146,6 +155,92 @@ func GenerateToday(ctx context.Context, userID, listID uuid.UUID, excludeIDs []u
 	activityServices.RecordSafe(ctx, listID, userID, "variant_created", "list_variant", &variant.ID,
 		map[string]interface{}{"title": variant.Title, "item_count": len(variant.Items)})
 	return variant, nil
+}
+
+// CreateTodayList generates a one-time, real List from the periodic list's
+// current need-to-buy items (minus excludeIDs). The new list is non-periodic,
+// linked to its parent via source_periodic_list_id, and behaves like any normal
+// list. Each source item gets a system comment recording the "added to today's
+// list" action (distinct from the need-to-buy comment). Editor+.
+func CreateTodayList(ctx context.Context, userID, listID uuid.UUID, excludeIDs []uuid.UUID) (*listModels.List, error) {
+	src, err := listServices.GetListForWrite(ctx, userID, listID)
+	if err != nil {
+		return nil, err
+	}
+	if !src.IsPeriodic {
+		return nil, ErrNotPeriodic
+	}
+
+	var candidates []listModels.Item
+	db := repository.GetDB().WithContext(ctx)
+	if err := db.Preload("Attributes").Where("list_id = ? AND need_to_buy = TRUE", listID).
+		Order("created_at ASC").Find(&candidates).Error; err != nil {
+		return nil, err
+	}
+
+	excluded := make(map[uuid.UUID]bool, len(excludeIDs))
+	for _, id := range excludeIDs {
+		excluded[id] = true
+	}
+	included := make([]listModels.Item, 0, len(candidates))
+	for _, it := range candidates {
+		if !excluded[it.ID] {
+			included = append(included, it)
+		}
+	}
+	if len(included) == 0 {
+		return nil, ErrNoItems
+	}
+
+	notPeriodic := false
+	title := fmt.Sprintf("%s — %s", src.Name, time.Now().Format("2006-01-02"))
+	newList, err := listServices.CreateList(ctx, userID, listServices.ListInput{
+		Name:                 title,
+		IsPeriodic:           &notPeriodic,
+		SourcePeriodicListID: &listID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, it := range included {
+		snap := &listModels.Item{
+			OwnerID:    userID,
+			ListID:     newList.ID,
+			CategoryID: it.CategoryID,
+			Name:       it.Name,
+			Brand:      it.Brand,
+			Price:      it.Price,
+			Notes:      it.Notes,
+		}
+		if err := db.Create(snap).Error; err != nil {
+			return nil, err
+		}
+		if err := listServices.CopyItemAttributes(ctx, snap.ID, it.Attributes); err != nil {
+			return nil, err
+		}
+		// The "different action" comment on the source item.
+		if _, cerr := activityServices.AddSystemComment(ctx, it.ID, listID, "Added to today's list"); cerr != nil {
+			_ = cerr // non-fatal
+		}
+	}
+
+	activityServices.RecordSafe(ctx, listID, userID, "today_list_created", "list", &newList.ID,
+		map[string]interface{}{"title": title, "item_count": len(included)})
+	return newList, nil
+}
+
+// ListTodayLists returns the one-time "today's lists" generated from a periodic
+// list, newest first (read access to the parent).
+func ListTodayLists(ctx context.Context, userID, listID uuid.UUID) ([]listModels.List, error) {
+	if _, err := listServices.GetList(ctx, userID, listID); err != nil {
+		return nil, err
+	}
+	var lists []listModels.List
+	err := repository.GetDB().WithContext(ctx).
+		Where("source_periodic_list_id = ?", listID).
+		Order("created_at DESC").Find(&lists).Error
+	return lists, err
 }
 
 // ListVariants returns a periodic list's variants, newest first (read access).

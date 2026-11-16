@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"dalista/dalista-be/api/server/middlewares"
 	listServices "dalista/dalista-be/app/services/listServices"
@@ -60,12 +62,28 @@ func mapErr(c *gin.Context, err error) {
 	}
 }
 
-// marshalAttributes turns a form's attributes map into a JSON string pointer.
-func marshalAttributes(attrs map[string]interface{}) (*string, error) {
-	if attrs == nil {
+// validURLField reports whether an optional URL form field is acceptable: nil
+// (omitted) and "" (clear) both pass; a non-empty value must be a valid http(s)
+// absolute URL.
+func validURLField(p *string) bool {
+	if p == nil {
+		return true
+	}
+	v := strings.TrimSpace(*p)
+	if v == "" {
+		return true
+	}
+	u, err := url.ParseRequestURI(v)
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
+}
+
+// marshalExtra turns a form's custom-extras map into a JSON object string
+// pointer. nil map → nil (leave unchanged); present map → serialized object.
+func marshalExtra(extra map[string]interface{}) (*string, error) {
+	if extra == nil {
 		return nil, nil
 	}
-	raw, err := json.Marshal(attrs)
+	raw, err := json.Marshal(extra)
 	if err != nil {
 		return nil, err
 	}

@@ -7,10 +7,22 @@ import (
 	"dalista/dalista-be/api/resources"
 	"dalista/dalista-be/api/server/middlewares"
 	listServices "dalista/dalista-be/app/services/listServices"
+	publicListServices "dalista/dalista-be/app/services/publicListServices"
 	"dalista/dalista-be/app/utils"
 
 	"github.com/gin-gonic/gin"
 )
+
+// canGoPublic enforces the single, flippable "may create a public list" rule
+// (DAL-114) when a create/update request sets is_public=true. Aborts with 403
+// and returns false when the caller lacks the permission; returns true
+// otherwise (including when the request doesn't make the list public).
+func canGoPublic(c *gin.Context, isPublic *bool) bool {
+	if isPublic == nil || !*isPublic {
+		return true
+	}
+	return middlewares.AbortIfCant(c, publicListServices.PermCreatePublic)
+}
 
 // ListLists godoc
 //
@@ -100,6 +112,9 @@ func CreateList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"errors": utils.FormatValidationErrors(err)})
 		return
 	}
+	if !canGoPublic(c, form.IsPublic) {
+		return
+	}
 	glID, err := parseOptionalUUID(form.GroupedListID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid grouped_list_id"})
@@ -151,6 +166,9 @@ func UpdateList(c *gin.Context) {
 	var form forms.UpdateListForm
 	if err := c.ShouldBindJSON(&form); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"errors": utils.FormatValidationErrors(err)})
+		return
+	}
+	if !canGoPublic(c, form.IsPublic) {
 		return
 	}
 	glID, err := parseOptionalUUID(form.GroupedListID)

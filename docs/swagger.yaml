@@ -58,12 +58,33 @@ definitions:
       total:
         type: integer
     type: object
+  forms.AdminSMSForm:
+    properties:
+      message:
+        maxLength: 640
+        type: string
+      user_ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - message
+    - user_ids
+    type: object
   forms.AppleVerifyForm:
     properties:
       transaction_id:
         type: string
     required:
     - transaction_id
+    type: object
+  forms.BoughtForm:
+    properties:
+      is_bought:
+        type: boolean
+    required:
+    - is_bought
     type: object
   forms.CategoryForm:
     properties:
@@ -94,14 +115,31 @@ definitions:
     required:
     - body
     type: object
+  forms.CreateComparisonForm:
+    properties:
+      item_ids:
+        items:
+          type: string
+        minItems: 2
+        type: array
+    required:
+    - item_ids
+    type: object
   forms.CreateItemForm:
     properties:
-      attributes:
-        additionalProperties: true
-        type: object
       brand:
         type: string
       category_id:
+        type: string
+      extra:
+        additionalProperties: true
+        description: Extra holds arbitrary custom key/values (the XD "Add Other" row).
+        type: object
+      facebook:
+        type: string
+      instagram:
+        type: string
+      location:
         type: string
       name:
         example: Milk
@@ -109,9 +147,17 @@ definitions:
         type: string
       notes:
         type: string
+      phone:
+        type: string
       price:
         example: 3.99
         type: number
+      url:
+        description: |-
+          Optional well-known attributes. Each is independent; omit to leave unset,
+          send "" to clear. URL is format-checked when non-empty.
+        example: https://shop.example.com/item
+        type: string
     required:
     - name
     type: object
@@ -208,6 +254,21 @@ definitions:
     required:
     - refresh_token
     type: object
+  forms.RegisterDeviceForm:
+    properties:
+      platform:
+        enum:
+        - ios
+        - android
+        - web
+        example: android
+        type: string
+      token:
+        type: string
+    required:
+    - platform
+    - token
+    type: object
   forms.RegisterEmailForm:
     properties:
       email:
@@ -236,24 +297,41 @@ definitions:
     - phone
     - role
     type: object
+  forms.UnregisterDeviceForm:
+    properties:
+      token:
+        type: string
+    required:
+    - token
+    type: object
   forms.UpdateItemForm:
     properties:
-      attributes:
-        additionalProperties: true
-        type: object
       brand:
         type: string
       category_id:
         type: string
       clear_category:
         type: boolean
+      extra:
+        additionalProperties: true
+        type: object
+      facebook:
+        type: string
+      instagram:
+        type: string
+      location:
+        type: string
       name:
         maxLength: 255
         type: string
       notes:
         type: string
+      phone:
+        type: string
       price:
         type: number
+      url:
+        type: string
     type: object
   forms.UpdateListForm:
     properties:
@@ -305,6 +383,44 @@ definitions:
       status:
         example: ok
         type: string
+    type: object
+  notificationServices.AdminSMSResult:
+    properties:
+      requested:
+        description: user IDs asked for
+        type: integer
+      sent:
+        description: messages dispatched (users with a phone)
+        type: integer
+      skipped:
+        description: users not found or without a phone
+        type: integer
+    type: object
+  publicListServices.Engagement:
+    properties:
+      top_lists:
+        items:
+          $ref: '#/definitions/publicListServices.EngagementRow'
+        type: array
+      total_public_lists:
+        type: integer
+      total_stars:
+        type: integer
+    type: object
+  publicListServices.EngagementRow:
+    properties:
+      email:
+        type: string
+      list_id:
+        type: string
+      name:
+        type: string
+      owner_id:
+        type: string
+      phone:
+        type: string
+      star_count:
+        type: integer
     type: object
   resources.ActivityEventResource:
     properties:
@@ -367,6 +483,66 @@ definitions:
       item_id:
         type: string
     type: object
+  resources.ComparisonResource:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      item_count:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/resources.ItemResource'
+        type: array
+      owner_id:
+        type: string
+      share_token:
+        type: string
+      withheld:
+        type: integer
+    type: object
+  resources.DeviceTokenResource:
+    properties:
+      id:
+        type: string
+      platform:
+        type: string
+    type: object
+  resources.DiscoveryFeedResource:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/resources.DiscoveryItemResource'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  resources.DiscoveryItemResource:
+    properties:
+      category_id:
+        type: string
+      grouped_list_id:
+        type: string
+      id:
+        type: string
+      is_periodic:
+        type: boolean
+      is_public:
+        type: boolean
+      name:
+        type: string
+      source_periodic_list_id:
+        type: string
+      star_count:
+        type: integer
+      starred_by_me:
+        type: boolean
+    type: object
   resources.GroupedListResource:
     properties:
       id:
@@ -374,18 +550,50 @@ definitions:
       name:
         type: string
     type: object
+  resources.ItemAttributesResource:
+    properties:
+      extra:
+        additionalProperties: true
+        type: object
+      facebook:
+        type: string
+      instagram:
+        type: string
+      location:
+        type: string
+      phone:
+        type: string
+      url:
+        type: string
+    type: object
+  resources.ItemImageResource:
+    properties:
+      id:
+        type: string
+      position:
+        type: integer
+      size_bytes:
+        type: integer
+      url:
+        type: string
+    type: object
   resources.ItemResource:
     properties:
       attributes:
-        additionalProperties: true
-        type: object
+        $ref: '#/definitions/resources.ItemAttributesResource'
       brand:
         type: string
       category_id:
         type: string
       id:
         type: string
+      images:
+        items:
+          $ref: '#/definitions/resources.ItemImageResource'
+        type: array
       in_misc:
+        type: boolean
+      is_bought:
         type: boolean
       list_id:
         type: string
@@ -412,6 +620,10 @@ definitions:
         type: boolean
       name:
         type: string
+      source_periodic_list_id:
+        type: string
+      star_count:
+        type: integer
     type: object
   resources.ListVariantResource:
     properties:
@@ -430,6 +642,23 @@ definitions:
       periodic_list_id:
         type: string
       title:
+        type: string
+    type: object
+  resources.NotificationResource:
+    properties:
+      body:
+        type: string
+      created_at:
+        type: string
+      data:
+        additionalProperties:
+          type: string
+        type: object
+      id:
+        type: string
+      title:
+        type: string
+      type:
         type: string
     type: object
   resources.ProfileResource:
@@ -480,6 +709,19 @@ definitions:
         type: string
       role:
         type: string
+      source_periodic_list_id:
+        type: string
+      star_count:
+        type: integer
+    type: object
+  resources.StarResource:
+    properties:
+      list_id:
+        type: string
+      star_count:
+        type: integer
+      starred:
+        type: boolean
     type: object
   resources.SubscriptionResource:
     properties:
@@ -589,6 +831,64 @@ info:
   title: Dalista API
   version: "1.0"
 paths:
+  /admin/public-lists/engagement:
+    get:
+      description: Totals (public lists, stars) plus the top public lists by star
+        count, for the dashboard.
+      parameters:
+      - description: Number of top lists to return (default 10)
+        in: query
+        name: top
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/publicListServices.Engagement'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Public list engagement analytics (admin)
+      tags:
+      - public-lists
+  /admin/sms:
+    post:
+      consumes:
+      - application/json
+      description: Admin-only. Sends a message to each selected user's phone via SMS
+        Misr. Users without a phone are skipped.
+      parameters:
+      - description: User IDs + message
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.AdminSMSForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/notificationServices.AdminSMSResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Send an SMS to selected users (admin)
+      tags:
+      - notifications
   /admin/subscriptions:
     get:
       description: Subscriptions joined to owner contact fields, optionally filtered
@@ -1215,10 +1515,144 @@ paths:
       summary: Edit a comment (author only)
       tags:
       - comments
+  /comparisons:
+    post:
+      consumes:
+      - application/json
+      description: Persists a comparison from a manually selected set of item IDs
+        (own, shared, or public catalog). At least two accessible items required.
+      parameters:
+      - description: Item IDs to compare
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.CreateComparisonForm'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/resources.ComparisonResource'
+        "400":
+          description: Fewer than two accessible items
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a comparison session
+      tags:
+      - comparisons
+  /comparisons/{id}:
+    get:
+      description: Returns a comparison you own, with its items. Items you can no
+        longer access are withheld (see the withheld count).
+      parameters:
+      - description: Comparison ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.ComparisonResource'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a comparison (owner)
+      tags:
+      - comparisons
+  /comparisons/{id}/share:
+    post:
+      description: Generates (or returns the existing) share token for a comparison
+        you own. The token is the shareable reference; it grants no new item access
+        — recipients only see items they can already access.
+      parameters:
+      - description: Comparison ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.ComparisonResource'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Share a comparison
+      tags:
+      - comparisons
+  /devices:
+    delete:
+      consumes:
+      - application/json
+      description: Removes one of the caller's device tokens (e.g. on logout). Idempotent.
+      parameters:
+      - description: Device token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.UnregisterDeviceForm'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Unregister a push device token
+      tags:
+      - notifications
+    post:
+      consumes:
+      - application/json
+      description: Registers (or refreshes) the caller's FCM device token. Idempotent
+        per token; a token re-registering under a new account is reassigned.
+      parameters:
+      - description: Device token + platform
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.RegisterDeviceForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.DeviceTokenResource'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Register a push device token
+      tags:
+      - notifications
   /exports/category-interest:
     get:
-      description: Per-user counts of owned items/lists by category. First cut — Phase
-        7 adds starred public lists.
+      description: Per-user counts of owned items/lists and starred public lists,
+        by category.
       produces:
       - text/csv
       responses:
@@ -1343,23 +1777,50 @@ paths:
       - health
   /items/{id}:
     delete:
+      consumes:
+      - application/json
+      description: Editor+. Generic todo-style "bought / included" state, used on
+        today's lists and other non-periodic lists.
       parameters:
       - description: Item ID
         in: path
         name: id
         required: true
         type: string
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: is_bought
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.BoughtForm'
+      produces:
+      - application/json
       responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.ItemResource'
         "204":
           description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
         "404":
           description: Not Found
           schema:
             $ref: '#/definitions/responses.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Delete an item
+      - BearerAuth: []
+      summary: Toggle an item's bought/included checkbox
       tags:
+      - items
       - items
     get:
       parameters:
@@ -1414,6 +1875,53 @@ paths:
       - BearerAuth: []
       summary: Update an item (clear_category moves it to MISC)
       tags:
+      - items
+  /items/{id}/bought:
+    put:
+      consumes:
+      - application/json
+      description: Editor+. Generic todo-style "bought / included" state, used on
+        today's lists and other non-periodic lists.
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: is_bought
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.BoughtForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.ItemResource'
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - BearerAuth: []
+      summary: Toggle an item's bought/included checkbox
+      tags:
+      - items
       - items
   /items/{id}/comments:
     get:
@@ -1474,6 +1982,81 @@ paths:
       summary: Comment on an item
       tags:
       - comments
+  /items/{id}/images:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Editor+. Field name `image`. Max 10 MB, up to 6 images per item;
+        types JPEG/PNG/WebP/HEIC/GIF. Size counts against the storage quota.
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Image file
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/resources.ItemImageResource'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload a photo for an item (multipart)
+      tags:
+      - items
+  /items/{id}/images/{imageId}:
+    delete:
+      description: Editor+. Removes the stored object and releases the storage quota.
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Image ID
+        in: path
+        name: imageId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an item photo
+      tags:
+      - items
   /items/{id}/need-to-buy:
     put:
       consumes:
@@ -1913,6 +2496,67 @@ paths:
       summary: Generate "today's list" (a dated variant)
       tags:
       - periodic
+  /lists/{id}/today-list:
+    post:
+      consumes:
+      - application/json
+      description: Generates a real, non-periodic List from the periodic list's current
+        need-to-buy items (minus any excluded). It behaves like a normal list and
+        is nested under its parent. Adds an "added to today's list" system comment
+        on each source item. Editor+.
+      parameters:
+      - description: Periodic list ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Items to exclude
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/forms.GenerateTodayForm'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/resources.ListResource'
+        "400":
+          description: Not a periodic list / no items
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a one-time "today's list" from a periodic list
+      tags:
+      - periodic
+  /lists/{id}/today-lists:
+    get:
+      parameters:
+      - description: Periodic list ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/resources.ListResource'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List the one-time "today's lists" under a periodic list
+      tags:
+      - periodic
   /lists/{id}/variants:
     get:
       parameters:
@@ -1935,6 +2579,27 @@ paths:
       summary: List a periodic list's variants (history)
       tags:
       - periodic
+  /notifications:
+    get:
+      parameters:
+      - description: Max to return (default 50, max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/resources.NotificationResource'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List my notifications (inbox)
+      tags:
+      - notifications
   /profile:
     get:
       produces:
@@ -1984,6 +2649,121 @@ paths:
       summary: Update my profile
       tags:
       - profile
+  /public-lists:
+    get:
+      description: Paginated feed of public lists, most-starred first, optionally
+        filtered by category. Each item includes whether you've starred it.
+      parameters:
+      - description: Filter by category ID
+        in: query
+        name: category_id
+        type: string
+      - description: Page size (default 20, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.DiscoveryFeedResource'
+      security:
+      - BearerAuth: []
+      summary: Discover public lists (sorted by stars)
+      tags:
+      - public-lists
+  /public-lists/{id}/star:
+    delete:
+      description: Removes the caller's star from a public list (idempotent). Returns
+        the current star count.
+      parameters:
+      - description: List ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.StarResource'
+        "400":
+          description: List is not public
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Unstar a public list
+      tags:
+      - public-lists
+    post:
+      description: Stars a public list for the caller (idempotent). Returns the current
+        star count.
+      parameters:
+      - description: List ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.StarResource'
+        "400":
+          description: List is not public
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Star a public list
+      tags:
+      - public-lists
+  /shared-comparisons/{token}:
+    get:
+      description: Returns a shared comparison by its token, showing only the items
+        the viewer can access (public catalog or lists they can read). Others are
+        withheld.
+      parameters:
+      - description: Share token
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.ComparisonResource'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: View a shared comparison
+      tags:
+      - comparisons
   /shared-lists:
     get:
       produces:

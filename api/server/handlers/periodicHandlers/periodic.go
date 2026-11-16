@@ -40,6 +40,8 @@ func mapErr(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, periodicServices.ErrNotPeriodic):
 		c.JSON(http.StatusBadRequest, gin.H{"error": "List is not periodic"})
+	case errors.Is(err, periodicServices.ErrNoItems):
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No items marked need to buy"})
 	case errors.Is(err, periodicServices.ErrNotFound), errors.Is(err, listServices.ErrNotFound):
 		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
 	case errors.Is(err, listServices.ErrForbidden):
@@ -162,6 +164,80 @@ func GenerateToday(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, resources.ListVariantFromModel(variant))
+}
+
+// CreateTodayList godoc
+//
+//	@Summary	Create a one-time "today's list" from a periodic list
+//	@Description	Generates a real, non-periodic List from the periodic list's current need-to-buy items (minus any excluded). It behaves like a normal list and is nested under its parent. Adds an "added to today's list" system comment on each source item. Editor+.
+//	@Tags		periodic
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Produce	json
+//	@Param		id		path		string					true	"Periodic list ID"
+//	@Param		request	body		forms.GenerateTodayForm	false	"Items to exclude"
+//	@Success	201		{object}	resources.ListResource
+//	@Failure	400		{object}	responses.ErrorResponse	"Not a periodic list / no items"
+//	@Failure	403		{object}	responses.ErrorResponse
+//	@Router		/lists/{id}/today-list [post]
+func CreateTodayList(c *gin.Context) {
+	uid, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+	if !middlewares.AbortIfCant(c, periodicServices.PermManagePeriodic) {
+		return
+	}
+	listID, ok := parseUUID(c, "id")
+	if !ok {
+		return
+	}
+	var form forms.GenerateTodayForm
+	if err := c.ShouldBindJSON(&form); err != nil && err.Error() != "EOF" {
+		c.JSON(http.StatusBadRequest, gin.H{"errors": utils.FormatValidationErrors(err)})
+		return
+	}
+	excludes := make([]uuid.UUID, 0, len(form.ExcludeItemIDs))
+	for _, s := range form.ExcludeItemIDs {
+		if id, err := uuid.Parse(s); err == nil {
+			excludes = append(excludes, id)
+		}
+	}
+	list, err := periodicServices.CreateTodayList(c.Request.Context(), uid, listID, excludes)
+	if err != nil {
+		mapErr(c, err)
+		return
+	}
+	c.JSON(http.StatusCreated, resources.ListFromModel(list))
+}
+
+// ListTodayLists godoc
+//
+//	@Summary	List the one-time "today's lists" under a periodic list
+//	@Tags		periodic
+//	@Security	BearerAuth
+//	@Produce	json
+//	@Param		id	path	string	true	"Periodic list ID"
+//	@Success	200	{array}	resources.ListResource
+//	@Router		/lists/{id}/today-lists [get]
+func ListTodayLists(c *gin.Context) {
+	uid, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+	if !middlewares.AbortIfCant(c, listServices.PermReadList) {
+		return
+	}
+	listID, ok := parseUUID(c, "id")
+	if !ok {
+		return
+	}
+	lists, err := periodicServices.ListTodayLists(c.Request.Context(), uid, listID)
+	if err != nil {
+		mapErr(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, resources.ListsFromModels(lists))
 }
 
 // ListVariants godoc

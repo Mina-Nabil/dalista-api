@@ -65,22 +65,26 @@ func GroupedListsFromModels(gs []listModels.GroupedList) []GroupedListResource {
 // --- List ---
 
 type ListResource struct {
-	ID            string  `json:"id"`
-	Name          string  `json:"name"`
-	GroupedListID *string `json:"grouped_list_id"`
-	CategoryID    *string `json:"category_id"`
-	IsPublic      bool    `json:"is_public"`
-	IsPeriodic    bool    `json:"is_periodic"`
+	ID                   string  `json:"id"`
+	Name                 string  `json:"name"`
+	GroupedListID        *string `json:"grouped_list_id"`
+	CategoryID           *string `json:"category_id"`
+	SourcePeriodicListID *string `json:"source_periodic_list_id"`
+	IsPublic             bool    `json:"is_public"`
+	IsPeriodic           bool    `json:"is_periodic"`
+	StarCount            int     `json:"star_count"`
 }
 
 func ListFromModel(l *listModels.List) ListResource {
 	return ListResource{
-		ID:            l.ID.String(),
-		Name:          l.Name,
-		GroupedListID: uuidPtrToString(l.GroupedListID),
-		CategoryID:    uuidPtrToString(l.CategoryID),
-		IsPublic:      l.IsPublic,
-		IsPeriodic:    l.IsPeriodic,
+		ID:                   l.ID.String(),
+		Name:                 l.Name,
+		GroupedListID:        uuidPtrToString(l.GroupedListID),
+		CategoryID:           uuidPtrToString(l.CategoryID),
+		SourcePeriodicListID: uuidPtrToString(l.SourcePeriodicListID),
+		IsPublic:             l.IsPublic,
+		IsPeriodic:           l.IsPeriodic,
+		StarCount:            l.StarCount,
 	}
 }
 
@@ -104,14 +108,67 @@ type ItemResource struct {
 	Price      *float64               `json:"price"`
 	Notes      *string                `json:"notes"`
 	NeedToBuy  bool                   `json:"need_to_buy"`
-	Attributes map[string]interface{} `json:"attributes"`
+	IsBought   bool                   `json:"is_bought"`
+	Attributes ItemAttributesResource `json:"attributes"`
+	Images     []ItemImageResource    `json:"images"`
+}
+
+// ItemImageResource is one photo attached to an item.
+type ItemImageResource struct {
+	ID        string `json:"id"`
+	URL       string `json:"url"`
+	Position  int    `json:"position"`
+	SizeBytes int64  `json:"size_bytes"`
+}
+
+func ItemImageFromModel(i *listModels.ItemImage) ItemImageResource {
+	return ItemImageResource{
+		ID:        i.ID.String(),
+		URL:       i.URL,
+		Position:  i.Position,
+		SizeBytes: i.SizeBytes,
+	}
+}
+
+func ItemImagesFromModels(is []listModels.ItemImage) []ItemImageResource {
+	out := make([]ItemImageResource, 0, len(is))
+	for i := range is {
+		out = append(out, ItemImageFromModel(&is[i]))
+	}
+	return out
+}
+
+// ItemAttributesResource is the typed, well-known attribute set plus an `extra`
+// map for custom key/values. Always present on an item (nulls + empty extra
+// when the item has no attributes row).
+type ItemAttributesResource struct {
+	URL       *string                `json:"url"`
+	Location  *string                `json:"location"`
+	Facebook  *string                `json:"facebook"`
+	Instagram *string                `json:"instagram"`
+	Phone     *string                `json:"phone"`
+	Extra     map[string]interface{} `json:"extra"`
+}
+
+func itemAttributesFromModel(a *listModels.ItemAttributes) ItemAttributesResource {
+	extra := map[string]interface{}{}
+	if a == nil {
+		return ItemAttributesResource{Extra: extra}
+	}
+	if a.Extra != "" {
+		_ = json.Unmarshal([]byte(a.Extra), &extra)
+	}
+	return ItemAttributesResource{
+		URL:       a.URL,
+		Location:  a.Location,
+		Facebook:  a.Facebook,
+		Instagram: a.Instagram,
+		Phone:     a.Phone,
+		Extra:     extra,
+	}
 }
 
 func ItemFromModel(i *listModels.Item) ItemResource {
-	attrs := map[string]interface{}{}
-	if i.Attributes != "" {
-		_ = json.Unmarshal([]byte(i.Attributes), &attrs)
-	}
 	return ItemResource{
 		ID:         i.ID.String(),
 		ListID:     i.ListID.String(),
@@ -122,7 +179,9 @@ func ItemFromModel(i *listModels.Item) ItemResource {
 		Price:      i.Price,
 		Notes:      i.Notes,
 		NeedToBuy:  i.NeedToBuy,
-		Attributes: attrs,
+		IsBought:   i.IsBought,
+		Attributes: itemAttributesFromModel(i.Attributes),
+		Images:     ItemImagesFromModels(i.Images),
 	}
 }
 

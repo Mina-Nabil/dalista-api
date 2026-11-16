@@ -9,11 +9,18 @@ import (
 	"github.com/google/uuid"
 )
 
+func strptr(s string) *string { return &s }
+
 func TestItemResourceMiscAndAttributes(t *testing.T) {
-	// No category → MISC bucket; attributes JSON string → map.
+	// No category → MISC bucket; typed attributes + extra map.
 	misc := listModels.Item{
 		ID: uuid.New(), ListID: uuid.New(), OwnerID: uuid.New(),
-		Name: "Random", Attributes: `{"size":"1L","organic":true}`,
+		Name: "Random",
+		Attributes: &listModels.ItemAttributes{
+			URL:   strptr("https://shop.example.com"),
+			Phone: strptr("+2010"),
+			Extra: `{"size":"1L","organic":true}`,
+		},
 	}
 	r := resources.ItemFromModel(&misc)
 	if !r.InMisc {
@@ -22,8 +29,21 @@ func TestItemResourceMiscAndAttributes(t *testing.T) {
 	if r.CategoryID != nil {
 		t.Fatal("expected nil CategoryID for a MISC item")
 	}
-	if r.Attributes["size"] != "1L" || r.Attributes["organic"] != true {
-		t.Fatalf("attributes not parsed: %#v", r.Attributes)
+	if r.Attributes.URL == nil || *r.Attributes.URL != "https://shop.example.com" {
+		t.Fatalf("url not mapped: %#v", r.Attributes.URL)
+	}
+	if r.Attributes.Phone == nil || *r.Attributes.Phone != "+2010" {
+		t.Fatalf("phone not mapped: %#v", r.Attributes.Phone)
+	}
+	if r.Attributes.Extra["size"] != "1L" || r.Attributes.Extra["organic"] != true {
+		t.Fatalf("extra not parsed: %#v", r.Attributes.Extra)
+	}
+
+	// No attributes row → nulls + empty extra, never nil map.
+	none := listModels.Item{ID: uuid.New(), ListID: uuid.New(), OwnerID: uuid.New(), Name: "Bare"}
+	rn := resources.ItemFromModel(&none)
+	if rn.Attributes.URL != nil || rn.Attributes.Extra == nil || len(rn.Attributes.Extra) != 0 {
+		t.Fatalf("expected empty attributes, got %#v", rn.Attributes)
 	}
 
 	// With a category → not MISC.
@@ -35,6 +55,32 @@ func TestItemResourceMiscAndAttributes(t *testing.T) {
 	}
 	if r2.CategoryID == nil || *r2.CategoryID != cat.String() {
 		t.Fatalf("CategoryID = %v, want %s", r2.CategoryID, cat)
+	}
+}
+
+func TestItemImageResource(t *testing.T) {
+	item := listModels.Item{
+		ID: uuid.New(), ListID: uuid.New(), OwnerID: uuid.New(), Name: "Photo item",
+		Images: []listModels.ItemImage{
+			{ID: uuid.New(), URL: "http://localhost:8080/media/items/x/a.png", Position: 0, SizeBytes: 123},
+			{ID: uuid.New(), URL: "http://localhost:8080/media/items/x/b.png", Position: 1, SizeBytes: 456},
+		},
+	}
+	r := resources.ItemFromModel(&item)
+	if len(r.Images) != 2 {
+		t.Fatalf("expected 2 images, got %d", len(r.Images))
+	}
+	if r.Images[0].Position != 0 || r.Images[0].SizeBytes != 123 || r.Images[0].URL == "" {
+		t.Fatalf("image[0] mapped wrong: %+v", r.Images[0])
+	}
+	if r.Images[1].Position != 1 {
+		t.Fatalf("image[1] position wrong: %+v", r.Images[1])
+	}
+
+	// No images → non-nil empty slice (so JSON renders []).
+	bare := resources.ItemFromModel(&listModels.Item{ID: uuid.New(), ListID: uuid.New(), OwnerID: uuid.New(), Name: "Bare"})
+	if bare.Images == nil || len(bare.Images) != 0 {
+		t.Fatalf("expected empty images slice, got %#v", bare.Images)
 	}
 }
 

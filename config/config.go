@@ -78,6 +78,13 @@ type Config struct {
 	// RateLimitPerMinute caps requests per client IP per minute at the API edge
 	// (token bucket, burst = limit). 0 disables the middleware.
 	RateLimitPerMinute int `env:"RATE_LIMIT_PER_MINUTE" envDefault:"40"`
+
+	// Object storage for item images. Driver "local" writes files to a directory
+	// served statically at StoragePublicBaseURL; swap to an S3-compatible driver
+	// in production without touching call sites.
+	StorageDriver        string `env:"STORAGE_DRIVER" envDefault:"local"`
+	StorageLocalDir      string `env:"STORAGE_LOCAL_DIR" envDefault:"/app/storage"`
+	StoragePublicBaseURL string `env:"STORAGE_PUBLIC_BASE_URL" envDefault:"http://localhost:8080/media"`
 }
 
 var cfg *Config

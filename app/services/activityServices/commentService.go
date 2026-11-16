@@ -8,6 +8,7 @@ import (
 	"dalista/dalista-be/app/repository"
 	activityModels "dalista/dalista-be/app/repository/models/activityModels"
 	listModels "dalista/dalista-be/app/repository/models/listModels"
+	notificationServices "dalista/dalista-be/app/services/notificationServices"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -29,6 +30,10 @@ func CreateComment(ctx context.Context, authorID, itemID, listID uuid.UUID, body
 	RecordSafe(ctx, listID, authorID, ActionCommentAdded, "item", &itemID, map[string]interface{}{
 		"comment_id": comment.ID.String(),
 	})
+	// Push trigger (best-effort): notify the other list members of the new comment.
+	notificationServices.NotifyListMembers(ctx, listID, authorID, notificationServices.TypeItemCommented,
+		"New comment", "Someone commented on an item in a shared list.",
+		map[string]string{"item_id": itemID.String(), "list_id": listID.String(), "comment_id": comment.ID.String()})
 	return comment, nil
 }
 

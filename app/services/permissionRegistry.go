@@ -9,8 +9,11 @@ import (
 	"dalista/dalista-be/app/services/activityServices"
 	"dalista/dalista-be/app/services/authServices"
 	"dalista/dalista-be/app/services/billingServices"
+	"dalista/dalista-be/app/services/comparisonServices"
 	"dalista/dalista-be/app/services/listServices"
+	"dalista/dalista-be/app/services/notificationServices"
 	"dalista/dalista-be/app/services/periodicServices"
+	"dalista/dalista-be/app/services/publicListServices"
 	"dalista/dalista-be/app/services/sharingServices"
 )
 
@@ -24,7 +27,10 @@ func AllPermissions() []string {
 	all = append(all, sharingServices.AllPermissions...)
 	all = append(all, activityServices.AllPermissions...)
 	all = append(all, periodicServices.AllPermissions...)
-	// Phase 7+: publicListServices, … register here.
+	all = append(all, publicListServices.AllPermissions...)
+	all = append(all, comparisonServices.AllPermissions...)
+	all = append(all, notificationServices.AllPermissions...)
+	// Phase 10+: agentServices, … register here.
 	return all
 }
 
@@ -53,6 +59,9 @@ func RoleDefaults() map[userModels.Role][]string {
 			sharingServices.UserPermissions,
 			activityServices.UserPermissions,
 			periodicServices.UserPermissions,
+			publicListServices.UserPermissions,
+			comparisonServices.UserPermissions,
+			notificationServices.UserPermissions,
 		),
 	}
 }

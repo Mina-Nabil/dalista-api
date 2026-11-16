@@ -11,3 +11,6 @@ build-errors.log
 
 # OS
 .DS_Store
+
+# Local object storage (dev) — item image uploads
+storage/

@@ -15,6 +15,96 @@
     "host": "localhost:8080",
     "basePath": "/api/v1",
     "paths": {
+        "/admin/public-lists/engagement": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Totals (public lists, stars) plus the top public lists by star count, for the dashboard.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "public-lists"
+                ],
+                "summary": "Public list engagement analytics (admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Number of top lists to return (default 10)",
+                        "name": "top",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/publicListServices.Engagement"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/sms": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Admin-only. Sends a message to each selected user's phone via SMS Misr. Users without a phone are skipped.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Send an SMS to selected users (admin)",
+                "parameters": [
+                    {
+                        "description": "User IDs + message",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/forms.AdminSMSForm"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/notificationServices.AdminSMSResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/subscriptions": {
             "get": {
                 "security": [
@@ -978,6 +1068,213 @@
                 }
             }
         },
+        "/comparisons": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Persists a comparison from a manually selected set of item IDs (own, shared, or public catalog). At least two accessible items required.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comparisons"
+                ],
+                "summary": "Create a comparison session",
+                "parameters": [
+                    {
+                        "description": "Item IDs to compare",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/forms.CreateComparisonForm"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/resources.ComparisonResource"
+                        }
+                    },
+                    "400": {
+                        "description": "Fewer than two accessible items",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/comparisons/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a comparison you own, with its items. Items you can no longer access are withheld (see the withheld count).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comparisons"
+                ],
+                "summary": "Get a comparison (owner)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comparison ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resources.ComparisonResource"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/comparisons/{id}/share": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generates (or returns the existing) share token for a comparison you own. The token is the shareable reference; it grants no new item access — recipients only see items they can already access.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comparisons"
+                ],
+                "summary": "Share a comparison",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comparison ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resources.ComparisonResource"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/devices": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Registers (or refreshes) the caller's FCM device token. Idempotent per token; a token re-registering under a new account is reassigned.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Register a push device token",
+                "parameters": [
+                    {
+                        "description": "Device token + platform",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/forms.RegisterDeviceForm"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resources.DeviceTokenResource"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes one of the caller's device tokens (e.g. on logout). Idempotent.",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Unregister a push device token",
+                "parameters": [
+                    {
+                        "description": "Device token",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/forms.UnregisterDeviceForm"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/exports/category-interest": {
             "get": {
                 "security": [
@@ -985,7 +1282,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Per-user counts of owned items/lists by category. First cut — Phase 7 adds starred public lists.",
+                "description": "Per-user counts of owned items/lists and starred public lists, by category.",
                 "produces": [
                     "text/csv"
                 ],
@@ -1271,12 +1568,23 @@
                 "security": [
                     {
                         "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
                     }
                 ],
+                "description": "Editor+. Generic todo-style \"bought / included\" state, used on today's lists and other non-periodic lists.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
+                    "items",
                     "items"
                 ],
-                "summary": "Delete an item",
+                "summary": "Toggle an item's bought/included checkbox",
                 "parameters": [
                     {
                         "type": "string",
@@ -1284,11 +1592,111 @@
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "is_bought",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/forms.BoughtForm"
+                        }
                     }
                 ],
                 "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resources.ItemResource"
+                        }
+                    },
                     "204": {
                         "description": "No Content"
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/items/{id}/bought": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Editor+. Generic todo-style \"bought / included\" state, used on today's lists and other non-periodic lists.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items",
+                    "items"
+                ],
+                "summary": "Toggle an item's bought/included checkbox",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "is_bought",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/forms.BoughtForm"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resources.ItemResource"
+                        }
+                    },
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
                     },
                     "404": {
                         "description": "Not Found",
@@ -1380,6 +1788,121 @@
                         "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/resources.CommentResource"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/items/{id}/images": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Editor+. Field name `image`. Max 10 MB, up to 6 images per item; types JPEG/PNG/WebP/HEIC/GIF. Size counts against the storage quota.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "Upload a photo for an item (multipart)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Image file",
+                        "name": "image",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/resources.ItemImageResource"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/items/{id}/images/{imageId}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Editor+. Removes the stored object and releases the storage quota.",
+                "tags": [
+                    "items"
+                ],
+                "summary": "Delete an item photo",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Image ID",
+                        "name": "imageId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     },
                     "404": {
@@ -2082,6 +2605,99 @@
                 }
             }
         },
+        "/lists/{id}/today-list": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generates a real, non-periodic List from the periodic list's current need-to-buy items (minus any excluded). It behaves like a normal list and is nested under its parent. Adds an \"added to today's list\" system comment on each source item. Editor+.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "periodic"
+                ],
+                "summary": "Create a one-time \"today's list\" from a periodic list",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Periodic list ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Items to exclude",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/forms.GenerateTodayForm"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/resources.ListResource"
+                        }
+                    },
+                    "400": {
+                        "description": "Not a periodic list / no items",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/lists/{id}/today-lists": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "periodic"
+                ],
+                "summary": "List the one-time \"today's lists\" under a periodic list",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Periodic list ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/resources.ListResource"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/lists/{id}/variants": {
             "get": {
                 "security": [
@@ -2112,6 +2728,41 @@
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/resources.ListVariantResource"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/notifications": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "List my notifications (inbox)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Max to return (default 50, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/resources.NotificationResource"
                             }
                         }
                     }
@@ -2190,6 +2841,181 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/public-lists": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Paginated feed of public lists, most-starred first, optionally filtered by category. Each item includes whether you've starred it.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "public-lists"
+                ],
+                "summary": "Discover public lists (sorted by stars)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by category ID",
+                        "name": "category_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default 20, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset for pagination",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resources.DiscoveryFeedResource"
+                        }
+                    }
+                }
+            }
+        },
+        "/public-lists/{id}/star": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Stars a public list for the caller (idempotent). Returns the current star count.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "public-lists"
+                ],
+                "summary": "Star a public list",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "List ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resources.StarResource"
+                        }
+                    },
+                    "400": {
+                        "description": "List is not public",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes the caller's star from a public list (idempotent). Returns the current star count.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "public-lists"
+                ],
+                "summary": "Unstar a public list",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "List ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resources.StarResource"
+                        }
+                    },
+                    "400": {
+                        "description": "List is not public",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/shared-comparisons/{token}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a shared comparison by its token, showing only the items the viewer can access (public catalog or lists they can read). Others are withheld.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comparisons"
+                ],
+                "summary": "View a shared comparison",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Share token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resources.ComparisonResource"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/responses.ErrorResponse"
                         }
@@ -2393,6 +3219,26 @@
                 }
             }
         },
+        "forms.AdminSMSForm": {
+            "type": "object",
+            "required": [
+                "message",
+                "user_ids"
+            ],
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "maxLength": 640
+                },
+                "user_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "forms.AppleVerifyForm": {
             "type": "object",
             "required": [
@@ -2401,6 +3247,17 @@
             "properties": {
                 "transaction_id": {
                     "type": "string"
+                }
+            }
+        },
+        "forms.BoughtForm": {
+            "type": "object",
+            "required": [
+                "is_bought"
+            ],
+            "properties": {
+                "is_bought": {
+                    "type": "boolean"
                 }
             }
         },
@@ -2446,20 +3303,45 @@
                 }
             }
         },
+        "forms.CreateComparisonForm": {
+            "type": "object",
+            "required": [
+                "item_ids"
+            ],
+            "properties": {
+                "item_ids": {
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "forms.CreateItemForm": {
             "type": "object",
             "required": [
                 "name"
             ],
             "properties": {
-                "attributes": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
                 "brand": {
                     "type": "string"
                 },
                 "category_id": {
+                    "type": "string"
+                },
+                "extra": {
+                    "description": "Extra holds arbitrary custom key/values (the XD \"Add Other\" row).",
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "facebook": {
+                    "type": "string"
+                },
+                "instagram": {
+                    "type": "string"
+                },
+                "location": {
                     "type": "string"
                 },
                 "name": {
@@ -2470,9 +3352,17 @@
                 "notes": {
                     "type": "string"
                 },
+                "phone": {
+                    "type": "string"
+                },
                 "price": {
                     "type": "number",
                     "example": 3.99
+                },
+                "url": {
+                    "description": "Optional well-known attributes. Each is independent; omit to leave unset,\nsend \"\" to clear. URL is format-checked when non-empty.",
+                    "type": "string",
+                    "example": "https://shop.example.com/item"
                 }
             }
         },
@@ -2615,6 +3505,27 @@
                 }
             }
         },
+        "forms.RegisterDeviceForm": {
+            "type": "object",
+            "required": [
+                "platform",
+                "token"
+            ],
+            "properties": {
+                "platform": {
+                    "type": "string",
+                    "enum": [
+                        "ios",
+                        "android",
+                        "web"
+                    ],
+                    "example": "android"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "forms.RegisterEmailForm": {
             "type": "object",
             "required": [
@@ -2654,13 +3565,20 @@
                 }
             }
         },
+        "forms.UnregisterDeviceForm": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "forms.UpdateItemForm": {
             "type": "object",
             "properties": {
-                "attributes": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
                 "brand": {
                     "type": "string"
                 },
@@ -2670,6 +3588,19 @@
                 "clear_category": {
                     "type": "boolean"
                 },
+                "extra": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "facebook": {
+                    "type": "string"
+                },
+                "instagram": {
+                    "type": "string"
+                },
+                "location": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string",
                     "maxLength": 255
@@ -2677,8 +3608,14 @@
                 "notes": {
                     "type": "string"
                 },
+                "phone": {
+                    "type": "string"
+                },
                 "price": {
                     "type": "number"
+                },
+                "url": {
+                    "type": "string"
                 }
             }
         },
@@ -2753,6 +3690,63 @@
                 "status": {
                     "type": "string",
                     "example": "ok"
+                }
+            }
+        },
+        "notificationServices.AdminSMSResult": {
+            "type": "object",
+            "properties": {
+                "requested": {
+                    "description": "user IDs asked for",
+                    "type": "integer"
+                },
+                "sent": {
+                    "description": "messages dispatched (users with a phone)",
+                    "type": "integer"
+                },
+                "skipped": {
+                    "description": "users not found or without a phone",
+                    "type": "integer"
+                }
+            }
+        },
+        "publicListServices.Engagement": {
+            "type": "object",
+            "properties": {
+                "top_lists": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/publicListServices.EngagementRow"
+                    }
+                },
+                "total_public_lists": {
+                    "type": "integer"
+                },
+                "total_stars": {
+                    "type": "integer"
+                }
+            }
+        },
+        "publicListServices.EngagementRow": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "list_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "owner_id": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "star_count": {
+                    "type": "integer"
                 }
             }
         },
@@ -2848,6 +3842,98 @@
                 }
             }
         },
+        "resources.ComparisonResource": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "item_count": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/resources.ItemResource"
+                    }
+                },
+                "owner_id": {
+                    "type": "string"
+                },
+                "share_token": {
+                    "type": "string"
+                },
+                "withheld": {
+                    "type": "integer"
+                }
+            }
+        },
+        "resources.DeviceTokenResource": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "platform": {
+                    "type": "string"
+                }
+            }
+        },
+        "resources.DiscoveryFeedResource": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/resources.DiscoveryItemResource"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "resources.DiscoveryItemResource": {
+            "type": "object",
+            "properties": {
+                "category_id": {
+                    "type": "string"
+                },
+                "grouped_list_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_periodic": {
+                    "type": "boolean"
+                },
+                "is_public": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "source_periodic_list_id": {
+                    "type": "string"
+                },
+                "star_count": {
+                    "type": "integer"
+                },
+                "starred_by_me": {
+                    "type": "boolean"
+                }
+            }
+        },
         "resources.GroupedListResource": {
             "type": "object",
             "properties": {
@@ -2859,12 +3945,52 @@
                 }
             }
         },
+        "resources.ItemAttributesResource": {
+            "type": "object",
+            "properties": {
+                "extra": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "facebook": {
+                    "type": "string"
+                },
+                "instagram": {
+                    "type": "string"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "resources.ItemImageResource": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "integer"
+                },
+                "size_bytes": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
         "resources.ItemResource": {
             "type": "object",
             "properties": {
                 "attributes": {
-                    "type": "object",
-                    "additionalProperties": true
+                    "$ref": "#/definitions/resources.ItemAttributesResource"
                 },
                 "brand": {
                     "type": "string"
@@ -2875,7 +4001,16 @@
                 "id": {
                     "type": "string"
                 },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/resources.ItemImageResource"
+                    }
+                },
                 "in_misc": {
+                    "type": "boolean"
+                },
+                "is_bought": {
                     "type": "boolean"
                 },
                 "list_id": {
@@ -2915,6 +4050,12 @@
                 },
                 "name": {
                     "type": "string"
+                },
+                "source_periodic_list_id": {
+                    "type": "string"
+                },
+                "star_count": {
+                    "type": "integer"
                 }
             }
         },
@@ -2943,6 +4084,32 @@
                     "type": "string"
                 },
                 "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "resources.NotificationResource": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "data": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -3018,6 +4185,26 @@
                 },
                 "role": {
                     "type": "string"
+                },
+                "source_periodic_list_id": {
+                    "type": "string"
+                },
+                "star_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "resources.StarResource": {
+            "type": "object",
+            "properties": {
+                "list_id": {
+                    "type": "string"
+                },
+                "star_count": {
+                    "type": "integer"
+                },
+                "starred": {
+                    "type": "boolean"
                 }
             }
         },

@@ -5,11 +5,14 @@ import (
 	"dalista/dalista-be/api/server/handlers/appleIAPHandlers"
 	"dalista/dalista-be/api/server/handlers/authHandlers"
 	"dalista/dalista-be/api/server/handlers/billingHandlers"
+	"dalista/dalista-be/api/server/handlers/comparisonHandlers"
 	"dalista/dalista-be/api/server/handlers/healthHandlers"
 	"dalista/dalista-be/api/server/handlers/listHandlers"
+	"dalista/dalista-be/api/server/handlers/notificationHandlers"
 	"dalista/dalista-be/api/server/handlers/periodicHandlers"
 	"dalista/dalista-be/api/server/handlers/playBillingHandlers"
 	"dalista/dalista-be/api/server/handlers/profileHandlers"
+	"dalista/dalista-be/api/server/handlers/publicListHandlers"
 	"dalista/dalista-be/api/server/handlers/sharingHandlers"
 	"dalista/dalista-be/api/server/middlewares"
 
@@ -30,6 +33,9 @@ func LoadRoutes(app *gin.Engine) {
 	initializeSharingRoutes(v1)
 	initializeActivityRoutes(v1)
 	initializePeriodicRoutes(v1)
+	initializePublicListRoutes(v1)
+	initializeComparisonRoutes(v1)
+	initializeNotificationRoutes(v1)
 }
 
 func initializeHealthRoutes(rg *gin.RouterGroup) {
@@ -97,7 +103,10 @@ func initializeListDomainRoutes(rg *gin.RouterGroup) {
 	items.Use(auth)
 	items.GET("/:id", listHandlers.GetItem)
 	items.PUT("/:id", listHandlers.UpdateItem)
+	items.PUT("/:id/bought", listHandlers.SetBought)
 	items.DELETE("/:id", listHandlers.DeleteItem)
+	items.POST("/:id/images", listHandlers.AddItemImage)
+	items.DELETE("/:id/images/:imageId", listHandlers.DeleteItemImage)
 
 	exports := rg.Group("/exports")
 	exports.Use(auth)
@@ -178,9 +187,63 @@ func initializePeriodicRoutes(rg *gin.RouterGroup) {
 	lists.Use(auth)
 	lists.GET("/today", periodicHandlers.TodayReview)
 	lists.POST("/today", periodicHandlers.GenerateToday)
+	lists.POST("/today-list", periodicHandlers.CreateTodayList)
+	lists.GET("/today-lists", periodicHandlers.ListTodayLists)
 	lists.GET("/variants", periodicHandlers.ListVariants)
 
 	variants := rg.Group("/variants")
 	variants.Use(auth)
 	variants.GET("/:id", periodicHandlers.GetVariant)
+}
+
+// initializePublicListRoutes wires the public-list discovery feed, star/unstar,
+// and the admin engagement analytics. All require authentication; making a list
+// public is gated on the list create/update handlers (public_lists:create).
+func initializePublicListRoutes(rg *gin.RouterGroup) {
+	auth := middlewares.AuthMiddleware()
+
+	pub := rg.Group("/public-lists")
+	pub.Use(auth)
+	pub.GET("", publicListHandlers.Discover)
+	pub.POST("/:id/star", publicListHandlers.Star)
+	pub.DELETE("/:id/star", publicListHandlers.Unstar)
+
+	admin := rg.Group("/admin/public-lists")
+	admin.Use(auth)
+	admin.GET("/engagement", publicListHandlers.Engagement)
+}
+
+// initializeComparisonRoutes wires creating, viewing, and sharing comparison
+// sessions. Shared views live under a separate top-level path (not
+// /comparisons/...) to avoid a static-vs-:id route conflict with the by-ID get.
+func initializeComparisonRoutes(rg *gin.RouterGroup) {
+	auth := middlewares.AuthMiddleware()
+
+	cmp := rg.Group("/comparisons")
+	cmp.Use(auth)
+	cmp.POST("", comparisonHandlers.Create)
+	cmp.GET("/:id", comparisonHandlers.Get)
+	cmp.POST("/:id/share", comparisonHandlers.Share)
+
+	shared := rg.Group("/shared-comparisons")
+	shared.Use(auth)
+	shared.GET("/:token", comparisonHandlers.GetShared)
+}
+
+// initializeNotificationRoutes wires push device-token registration, the in-app
+// notification inbox, and the admin SMS send. All require authentication; the
+// admin SMS send is further gated by the admin:send_sms permission.
+func initializeNotificationRoutes(rg *gin.RouterGroup) {
+	auth := middlewares.AuthMiddleware()
+
+	devices := rg.Group("/devices")
+	devices.Use(auth)
+	devices.POST("", notificationHandlers.RegisterDevice)
+	devices.DELETE("", notificationHandlers.UnregisterDevice)
+
+	rg.GET("/notifications", auth, notificationHandlers.ListNotifications)
+
+	admin := rg.Group("/admin/sms")
+	admin.Use(auth)
+	admin.POST("", notificationHandlers.AdminSendSMS)
 }

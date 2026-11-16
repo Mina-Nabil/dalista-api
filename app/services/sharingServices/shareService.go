@@ -10,6 +10,7 @@ import (
 	sharingModels "dalista/dalista-be/app/repository/models/sharingModels"
 	userModels "dalista/dalista-be/app/repository/models/userModels"
 	billingServices "dalista/dalista-be/app/services/billingServices"
+	notificationServices "dalista/dalista-be/app/services/notificationServices"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -87,6 +88,10 @@ func ShareListByPhone(ctx context.Context, ownerID, listID uuid.UUID, phone, rol
 		if err := db.Create(share).Error; err != nil {
 			return nil, err
 		}
+		// Push trigger (best-effort): tell the recipient a list was shared with them.
+		notificationServices.NotifySafe(ctx, target.ID, notificationServices.TypeListShared,
+			"A list was shared with you", "You now have access to a shared list.",
+			map[string]string{"list_id": listID.String(), "role": string(role)})
 		return &ShareResult{Kind: KindShare, Share: share}, nil
 	}
 
@@ -130,6 +135,10 @@ func ChangeRole(ctx context.Context, ownerID, listID, targetUserID uuid.UUID, ro
 	if res.RowsAffected == 0 {
 		return ErrNotFound
 	}
+	// Push trigger (best-effort): tell the collaborator their role changed.
+	notificationServices.NotifySafe(ctx, targetUserID, notificationServices.TypeRoleChanged,
+		"Your access changed", "Your role on a shared list was updated.",
+		map[string]string{"list_id": listID.String(), "role": string(role)})
 	return nil
 }
 

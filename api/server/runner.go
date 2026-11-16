@@ -56,6 +56,13 @@ func Run() {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
+	// Serve locally-stored item images. Only for the local storage driver; in
+	// production an S3-compatible driver serves them from object storage directly.
+	// Registered before the rate limiter so image loads aren't throttled.
+	if cfg.StorageDriver == "local" {
+		app.Static("/media", cfg.StorageLocalDir)
+	}
+
 	// Per-IP rate limiter (token bucket). Tunable via RATE_LIMIT_PER_MINUTE; 0 disables.
 	app.Use(middlewares.RateLimitMiddleware(cfg.RateLimitPerMinute))
 
