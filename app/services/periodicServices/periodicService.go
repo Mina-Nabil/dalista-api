@@ -20,7 +20,11 @@ import (
 // ToggleNeedToBuy sets an item's need-to-buy state on a periodic list (editor+).
 // On a real change it records an ItemStateEvent and an auto system comment
 // ("Marked as need to buy" / "We have enough").
-func ToggleNeedToBuy(ctx context.Context, userID, itemID uuid.UUID, need bool) (*listModels.Item, error) {
+//
+// quantity is optional: when marking need-to-buy it seeds the count (nil → 1);
+// when unmarking, the count resets to 1. If the need state is unchanged but a
+// new quantity is supplied for a need-to-buy item, only the count is updated.
+func ToggleNeedToBuy(ctx context.Context, userID, itemID uuid.UUID, need bool, quantity *int) (*listModels.Item, error) {
 	item, err := listServices.GetItem(ctx, userID, itemID) // read access + resolves the item
 	if err != nil {
 		return nil, err
@@ -33,13 +37,25 @@ func ToggleNeedToBuy(ctx context.Context, userID, itemID uuid.UUID, need bool) (
 		return nil, ErrNotPeriodic
 	}
 	if item.NeedToBuy == need {
+		// No state transition. Still allow a count update for a need-to-buy item.
+		if need && quantity != nil && *quantity != item.Quantity {
+			return SetItemQuantity(ctx, userID, itemID, *quantity)
+		}
 		return item, nil // no-op; no event/comment
 	}
 
+	// On mark: seed the count (default 1). On unmark: reset the count to 1.
+	qty := 1
+	if need && quantity != nil {
+		qty = *quantity
+	}
+
 	db := repository.GetDB().WithContext(ctx)
-	if err := db.Model(&listModels.Item{}).Where("id = ?", itemID).Update("need_to_buy", need).Error; err != nil {
+	if err := db.Model(&listModels.Item{}).Where("id = ?", itemID).
+		Updates(map[string]interface{}{"need_to_buy": need, "quantity": qty}).Error; err != nil {
 		return nil, err
 	}
+	item.Quantity = qty
 
 	state := periodicModels.StateEnough
 	body := "We have enough"
@@ -64,6 +80,41 @@ func ToggleNeedToBuy(ctx context.Context, userID, itemID uuid.UUID, need bool) (
 	}
 
 	item.NeedToBuy = need
+	return item, nil
+}
+
+// SetItemQuantity updates an item's need-to-buy count on a periodic list
+// (editor+). The count is clamped to a minimum of 1. No state event or system
+// comment is recorded — a count change is a lightweight adjustment, not a
+// need-to-buy transition.
+func SetItemQuantity(ctx context.Context, userID, itemID uuid.UUID, quantity int) (*listModels.Item, error) {
+	item, err := listServices.GetItem(ctx, userID, itemID)
+	if err != nil {
+		return nil, err
+	}
+	list, err := listServices.GetListForWrite(ctx, userID, item.ListID) // editor+
+	if err != nil {
+		return nil, err
+	}
+	if !list.IsPeriodic {
+		return nil, ErrNotPeriodic
+	}
+	if quantity < 1 {
+		quantity = 1
+	}
+	if item.Quantity == quantity {
+		return item, nil // no-op
+	}
+
+	db := repository.GetDB().WithContext(ctx)
+	if err := db.Model(&listModels.Item{}).Where("id = ?", itemID).
+		Update("quantity", quantity).Error; err != nil {
+		return nil, err
+	}
+	activityServices.RecordSafe(ctx, list.ID, userID, activityServices.ActionItemUpdated, "item", &itemID,
+		map[string]interface{}{"name": item.Name, "quantity": quantity})
+
+	item.Quantity = quantity
 	return item, nil
 }
 
@@ -109,7 +160,7 @@ func GenerateToday(ctx context.Context, userID, listID uuid.UUID, excludeIDs []u
 	// Exclude = mark "enough" (with the normal transition side effects).
 	for _, it := range candidates {
 		if excluded[it.ID] {
-			if _, err := ToggleNeedToBuy(ctx, userID, it.ID, false); err != nil {
+			if _, err := ToggleNeedToBuy(ctx, userID, it.ID, false, nil); err != nil {
 				return nil, err
 			}
 		}
@@ -140,6 +191,7 @@ func GenerateToday(ctx context.Context, userID, listID uuid.UUID, excludeIDs []u
 				CategoryID:   it.CategoryID,
 				Notes:        it.Notes,
 				Attributes:   listServices.FlattenAttributes(it.Attributes),
+				Quantity:     it.Quantity,
 			}
 			if err := tx.Create(snap).Error; err != nil {
 				return err
@@ -212,6 +264,7 @@ func CreateTodayList(ctx context.Context, userID, listID uuid.UUID, excludeIDs [
 			Brand:      it.Brand,
 			Price:      it.Price,
 			Notes:      it.Notes,
+			Quantity:   it.Quantity,
 		}
 		if err := db.Create(snap).Error; err != nil {
 			return nil, err

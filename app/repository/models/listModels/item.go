@@ -26,7 +26,11 @@ type Item struct {
 	NeedToBuy bool `gorm:"column:need_to_buy;not null;default:false"`
 	// IsBought is a generic todo-style "bought / included" checkbox, used on
 	// today's lists and other non-periodic lists.
-	IsBought  bool `gorm:"column:is_bought;not null;default:false"`
+	IsBought bool `gorm:"column:is_bought;not null;default:false"`
+	// Quantity is the periodic-list "count" — how many of this item to buy when
+	// it's marked need-to-buy. Defaults to 1; carried into generated today's
+	// lists and variant snapshots.
+	Quantity  int `gorm:"column:quantity;not null;default:1"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	// Attributes is the optional 1:1 side record (url/location/socials/phone +

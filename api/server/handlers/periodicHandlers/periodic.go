@@ -82,7 +82,46 @@ func SetNeedToBuy(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"errors": utils.FormatValidationErrors(err)})
 		return
 	}
-	item, err := periodicServices.ToggleNeedToBuy(c.Request.Context(), uid, itemID, *form.NeedToBuy)
+	item, err := periodicServices.ToggleNeedToBuy(c.Request.Context(), uid, itemID, *form.NeedToBuy, form.Quantity)
+	if err != nil {
+		mapErr(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, resources.ItemFromModel(item))
+}
+
+// SetQuantity godoc
+//
+//	@Summary	Set an item's need-to-buy count (periodic lists)
+//	@Description	Editor+ on a periodic list. Updates the "count" box value for a need-to-buy item (minimum 1). Does not record a state transition or system comment.
+//	@Tags		periodic
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Produce	json
+//	@Param		id		path		string				true	"Item ID"
+//	@Param		request	body		forms.QuantityForm	true	"quantity"
+//	@Success	200		{object}	resources.ItemResource
+//	@Failure	400		{object}	responses.ErrorResponse	"Not a periodic list / invalid quantity"
+//	@Failure	403		{object}	responses.ErrorResponse
+//	@Router		/items/{id}/quantity [put]
+func SetQuantity(c *gin.Context) {
+	uid, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+	if !middlewares.AbortIfCant(c, periodicServices.PermManagePeriodic) {
+		return
+	}
+	itemID, ok := parseUUID(c, "id")
+	if !ok {
+		return
+	}
+	var form forms.QuantityForm
+	if err := c.ShouldBindJSON(&form); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"errors": utils.FormatValidationErrors(err)})
+		return
+	}
+	item, err := periodicServices.SetItemQuantity(c.Request.Context(), uid, itemID, *form.Quantity)
 	if err != nil {
 		mapErr(c, err)
 		return

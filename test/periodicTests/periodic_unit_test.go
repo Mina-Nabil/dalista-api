@@ -25,6 +25,33 @@ func TestItemResourceCarriesNeedToBuy(t *testing.T) {
 	}
 }
 
+func TestItemResourceCarriesQuantity(t *testing.T) {
+	item := &listModels.Item{ID: uuid.New(), ListID: uuid.New(), Name: "Milk", NeedToBuy: true, Quantity: 3}
+	if got := resources.ItemFromModel(item).Quantity; got != 3 {
+		t.Fatalf("expected quantity 3, got %d", got)
+	}
+	// Default (zero-value model fields aside) still surfaces the stored count.
+	item.Quantity = 1
+	if got := resources.ItemFromModel(item).Quantity; got != 1 {
+		t.Fatalf("expected quantity 1, got %d", got)
+	}
+}
+
+func TestVariantItemResourceCarriesQuantity(t *testing.T) {
+	v := &periodicModels.ListVariant{
+		ID:             uuid.New(),
+		PeriodicListID: uuid.New(),
+		Title:          "Groceries",
+		Items: []periodicModels.ListVariantItem{
+			{ID: uuid.New(), Name: "Milk", Quantity: 4},
+		},
+	}
+	r := resources.ListVariantFromModel(v)
+	if len(r.Items) != 1 || r.Items[0].Quantity != 4 {
+		t.Fatalf("expected variant item quantity 4, got %+v", r.Items)
+	}
+}
+
 func TestListVariantFromModelMapsItems(t *testing.T) {
 	actor := uuid.New()
 	src := uuid.New()

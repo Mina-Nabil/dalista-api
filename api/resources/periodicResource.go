@@ -16,6 +16,7 @@ type VariantItemResource struct {
 	Price        *float64               `json:"price"`
 	CategoryID   *string                `json:"category_id"`
 	Notes        *string                `json:"notes"`
+	Quantity     int                    `json:"quantity"`
 	Attributes   map[string]interface{} `json:"attributes"`
 }
 
@@ -43,6 +44,7 @@ func variantItemFromModel(i *periodicModels.ListVariantItem) VariantItemResource
 		Price:        i.Price,
 		CategoryID:   idPtrString(i.CategoryID),
 		Notes:        i.Notes,
+		Quantity:     i.Quantity,
 		Attributes:   attrs,
 	}
 }

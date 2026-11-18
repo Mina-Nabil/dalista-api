@@ -1457,6 +1457,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/grouped-lists/{id}/misc": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the grouped list's auto-managed catch-all \"MISC\" list, creating it on first use. Idempotent — one MISC list per group. Used by the grouped list's Add button to drop loose items somewhere before they're filed. Owner only.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "grouped-lists"
+                ],
+                "summary": "Get or create a grouped list's MISC list",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Grouped list ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resources.ListResource"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Returns 200 when the API and its database are reachable, 503 otherwise.",
@@ -1965,6 +2011,64 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Not a periodic list",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/items/{id}/quantity": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Editor+ on a periodic list. Updates the \"count\" box value for a need-to-buy item (minimum 1). Does not record a state transition or system comment.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "periodic"
+                ],
+                "summary": "Set an item's need-to-buy count (periodic lists)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "quantity",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/forms.QuantityForm"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resources.ItemResource"
+                        }
+                    },
+                    "400": {
+                        "description": "Not a periodic list / invalid quantity",
                         "schema": {
                             "$ref": "#/definitions/responses.ErrorResponse"
                         }
@@ -3485,6 +3589,11 @@ const docTemplate = `{
                 "need_to_buy": {
                     "type": "boolean",
                     "example": true
+                },
+                "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
                 }
             }
         },
@@ -3497,6 +3606,19 @@ const docTemplate = `{
                 "phone": {
                     "type": "string",
                     "example": "+201001234567"
+                }
+            }
+        },
+        "forms.QuantityForm": {
+            "type": "object",
+            "required": [
+                "quantity"
+            ],
+            "properties": {
+                "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 2
                 }
             }
         },
@@ -3920,6 +4042,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "is_misc": {
+                    "type": "boolean"
+                },
                 "is_periodic": {
                     "type": "boolean"
                 },
@@ -4033,6 +4158,9 @@ const docTemplate = `{
                 },
                 "price": {
                     "type": "number"
+                },
+                "quantity": {
+                    "type": "integer"
                 }
             }
         },
@@ -4047,6 +4175,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "is_misc": {
+                    "type": "boolean"
                 },
                 "is_periodic": {
                     "type": "boolean"
@@ -4180,6 +4311,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "is_misc": {
+                    "type": "boolean"
+                },
                 "is_periodic": {
                     "type": "boolean"
                 },
@@ -4284,6 +4418,9 @@ const docTemplate = `{
                 },
                 "price": {
                     "type": "number"
+                },
+                "quantity": {
+                    "type": "integer"
                 },
                 "source_item_id": {
                     "type": "string"

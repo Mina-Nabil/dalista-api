@@ -67,6 +67,38 @@ func CreateGroupedList(c *gin.Context) {
 	c.JSON(http.StatusCreated, resources.GroupedListFromModel(gl))
 }
 
+// GetGroupMisc godoc
+//
+//	@Summary	Get or create a grouped list's MISC list
+//	@Description	Returns the grouped list's auto-managed catch-all "MISC" list, creating it on first use. Idempotent — one MISC list per group. Used by the grouped list's Add button to drop loose items somewhere before they're filed. Owner only.
+//	@Tags		grouped-lists
+//	@Security	BearerAuth
+//	@Produce	json
+//	@Param		id	path		string	true	"Grouped list ID"
+//	@Success	200	{object}	resources.ListResource
+//	@Failure	403	{object}	responses.ErrorResponse
+//	@Failure	404	{object}	responses.ErrorResponse
+//	@Router		/grouped-lists/{id}/misc [post]
+func GetGroupMisc(c *gin.Context) {
+	uid, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+	if !middlewares.AbortIfCant(c, listServices.PermCreateList) {
+		return
+	}
+	groupID, ok := parsePathUUID(c, "id")
+	if !ok {
+		return
+	}
+	list, err := listServices.GetOrCreateGroupMisc(c.Request.Context(), uid, groupID)
+	if err != nil {
+		mapErr(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, resources.ListFromModel(list))
+}
+
 // UpdateGroupedList godoc
 //
 //	@Summary	Rename a grouped list

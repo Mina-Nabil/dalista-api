@@ -20,6 +20,7 @@ type ListInput struct {
 	CategoryID           *uuid.UUID
 	IsPublic             *bool
 	IsPeriodic           *bool
+	IsMisc               *bool
 	SourcePeriodicListID *uuid.UUID
 }
 
@@ -63,7 +64,47 @@ func CreateList(ctx context.Context, userID uuid.UUID, in ListInput) (*listModel
 	if in.IsPeriodic != nil {
 		list.IsPeriodic = *in.IsPeriodic
 	}
+	if in.IsMisc != nil {
+		list.IsMisc = *in.IsMisc
+	}
 	if err := repository.GetDB().WithContext(ctx).Create(list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// GetOrCreateGroupMisc returns the grouped list's auto-managed "MISC" list,
+// creating it on first use. Idempotent and race-safe: a partial unique index
+// guarantees one MISC list per group, so a concurrent create that loses the
+// race re-reads the winner. The caller must own the grouped list.
+func GetOrCreateGroupMisc(ctx context.Context, userID, groupID uuid.UUID) (*listModels.List, error) {
+	if _, err := GetGroupedList(ctx, userID, groupID); err != nil {
+		return nil, err // ownership check (ErrNotFound/ErrForbidden)
+	}
+	db := repository.GetDB().WithContext(ctx)
+
+	var existing listModels.List
+	err := db.Where("grouped_list_id = ? AND is_misc = TRUE", groupID).First(&existing).Error
+	if err == nil {
+		return &existing, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	list := &listModels.List{
+		OwnerID:       userID,
+		GroupedListID: &groupID,
+		Name:          "MISC",
+		IsMisc:        true,
+	}
+	if err := db.Create(list).Error; err != nil {
+		// Lost a race against a concurrent create — the unique index rejected
+		// this row; return the one that won.
+		var winner listModels.List
+		if re := db.Where("grouped_list_id = ? AND is_misc = TRUE", groupID).First(&winner).Error; re == nil {
+			return &winner, nil
+		}
 		return nil, err
 	}
 	return list, nil

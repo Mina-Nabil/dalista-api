@@ -11,6 +11,18 @@ import (
 
 func strptr(s string) *string { return &s }
 
+func TestListResourceCarriesIsMisc(t *testing.T) {
+	gid := uuid.New()
+	misc := &listModels.List{ID: uuid.New(), Name: "MISC", GroupedListID: &gid, IsMisc: true}
+	if r := resources.ListFromModel(misc); !r.IsMisc {
+		t.Fatalf("expected is_misc true, got %+v", r)
+	}
+	ordinary := &listModels.List{ID: uuid.New(), Name: "Groceries"}
+	if resources.ListFromModel(ordinary).IsMisc {
+		t.Fatalf("expected is_misc false for an ordinary list")
+	}
+}
+
 func TestItemResourceMiscAndAttributes(t *testing.T) {
 	// No category → MISC bucket; typed attributes + extra map.
 	misc := listModels.Item{

@@ -70,7 +70,9 @@ type ListVariantItem struct {
 	CategoryID   *uuid.UUID `gorm:"column:category_id;type:uuid"`
 	Notes        *string    `gorm:"column:notes"`
 	Attributes   string     `gorm:"column:attributes;type:jsonb;not null;default:'{}'"`
-	CreatedAt    time.Time
+	// Quantity is the snapshot of the source item's need-to-buy count.
+	Quantity  int `gorm:"column:quantity;not null;default:1"`
+	CreatedAt time.Time
 }
 
 func (ListVariantItem) TableName() string { return "list_variant_items" }

@@ -72,6 +72,7 @@ type ListResource struct {
 	SourcePeriodicListID *string `json:"source_periodic_list_id"`
 	IsPublic             bool    `json:"is_public"`
 	IsPeriodic           bool    `json:"is_periodic"`
+	IsMisc               bool    `json:"is_misc"`
 	StarCount            int     `json:"star_count"`
 }
 
@@ -84,6 +85,7 @@ func ListFromModel(l *listModels.List) ListResource {
 		SourcePeriodicListID: uuidPtrToString(l.SourcePeriodicListID),
 		IsPublic:             l.IsPublic,
 		IsPeriodic:           l.IsPeriodic,
+		IsMisc:               l.IsMisc,
 		StarCount:            l.StarCount,
 	}
 }
@@ -109,6 +111,7 @@ type ItemResource struct {
 	Notes      *string                `json:"notes"`
 	NeedToBuy  bool                   `json:"need_to_buy"`
 	IsBought   bool                   `json:"is_bought"`
+	Quantity   int                    `json:"quantity"`
 	Attributes ItemAttributesResource `json:"attributes"`
 	Images     []ItemImageResource    `json:"images"`
 }
@@ -180,6 +183,7 @@ func ItemFromModel(i *listModels.Item) ItemResource {
 		Notes:      i.Notes,
 		NeedToBuy:  i.NeedToBuy,
 		IsBought:   i.IsBought,
+		Quantity:   i.Quantity,
 		Attributes: itemAttributesFromModel(i.Attributes),
 		Images:     ItemImagesFromModels(i.Images),
 	}

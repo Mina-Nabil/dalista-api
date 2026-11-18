@@ -86,6 +86,7 @@ func initializeListDomainRoutes(rg *gin.RouterGroup) {
 	gl.Use(auth)
 	gl.GET("", listHandlers.ListGroupedLists)
 	gl.POST("", listHandlers.CreateGroupedList)
+	gl.POST("/:id/misc", listHandlers.GetGroupMisc)
 	gl.PUT("/:id", listHandlers.UpdateGroupedList)
 	gl.DELETE("/:id", listHandlers.DeleteGroupedList)
 
@@ -182,6 +183,7 @@ func initializePeriodicRoutes(rg *gin.RouterGroup) {
 	auth := middlewares.AuthMiddleware()
 
 	rg.PUT("/items/:id/need-to-buy", auth, periodicHandlers.SetNeedToBuy)
+	rg.PUT("/items/:id/quantity", auth, periodicHandlers.SetQuantity)
 
 	lists := rg.Group("/lists/:id")
 	lists.Use(auth)

@@ -18,9 +18,12 @@ type List struct {
 	// generated from the periodic list it points to. Nil for ordinary lists.
 	SourcePeriodicListID *uuid.UUID `gorm:"column:source_periodic_list_id;type:uuid"`
 	Name                 string     `gorm:"column:name;not null"`
-	IsPublic      bool       `gorm:"column:is_public;not null;default:false"`
-	IsPeriodic    bool       `gorm:"column:is_periodic;not null;default:false"`
-	StarCount     int        `gorm:"column:star_count;not null;default:0"`
+	IsPublic   bool `gorm:"column:is_public;not null;default:false"`
+	IsPeriodic bool `gorm:"column:is_periodic;not null;default:false"`
+	// IsMisc marks a grouped list's auto-managed catch-all "MISC" list (at most
+	// one per grouped list). False for all ordinary lists.
+	IsMisc    bool `gorm:"column:is_misc;not null;default:false"`
+	StarCount int  `gorm:"column:star_count;not null;default:0"`
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }

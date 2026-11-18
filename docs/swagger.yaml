@@ -236,6 +236,10 @@ definitions:
       need_to_buy:
         example: true
         type: boolean
+      quantity:
+        example: 1
+        minimum: 1
+        type: integer
     required:
     - need_to_buy
     type: object
@@ -246,6 +250,15 @@ definitions:
         type: string
     required:
     - phone
+    type: object
+  forms.QuantityForm:
+    properties:
+      quantity:
+        example: 2
+        minimum: 1
+        type: integer
+    required:
+    - quantity
     type: object
   forms.RefreshForm:
     properties:
@@ -530,6 +543,8 @@ definitions:
         type: string
       id:
         type: string
+      is_misc:
+        type: boolean
       is_periodic:
         type: boolean
       is_public:
@@ -605,6 +620,8 @@ definitions:
         type: string
       price:
         type: number
+      quantity:
+        type: integer
     type: object
   resources.ListResource:
     properties:
@@ -614,6 +631,8 @@ definitions:
         type: string
       id:
         type: string
+      is_misc:
+        type: boolean
       is_periodic:
         type: boolean
       is_public:
@@ -701,6 +720,8 @@ definitions:
         type: string
       id:
         type: string
+      is_misc:
+        type: boolean
       is_periodic:
         type: boolean
       is_public:
@@ -770,6 +791,8 @@ definitions:
         type: string
       price:
         type: number
+      quantity:
+        type: integer
       source_item_id:
         type: string
     type: object
@@ -1758,6 +1781,38 @@ paths:
       summary: Rename a grouped list
       tags:
       - grouped-lists
+  /grouped-lists/{id}/misc:
+    post:
+      description: Returns the grouped list's auto-managed catch-all "MISC" list,
+        creating it on first use. Idempotent — one MISC list per group. Used by the
+        grouped list's Add button to drop loose items somewhere before they're filed.
+        Owner only.
+      parameters:
+      - description: Grouped list ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.ListResource'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get or create a grouped list's MISC list
+      tags:
+      - grouped-lists
   /health:
     get:
       description: Returns 200 when the API and its database are reachable, 503 otherwise.
@@ -2093,6 +2148,45 @@ paths:
       security:
       - BearerAuth: []
       summary: Toggle an item's need-to-buy state (periodic lists)
+      tags:
+      - periodic
+  /items/{id}/quantity:
+    put:
+      consumes:
+      - application/json
+      description: Editor+ on a periodic list. Updates the "count" box value for a
+        need-to-buy item (minimum 1). Does not record a state transition or system
+        comment.
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: quantity
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.QuantityForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resources.ItemResource'
+        "400":
+          description: Not a periodic list / invalid quantity
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Set an item's need-to-buy count (periodic lists)
       tags:
       - periodic
   /lists:
