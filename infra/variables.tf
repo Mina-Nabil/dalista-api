@@ -59,6 +59,12 @@ variable "sentry_dsn" {
   default     = ""
 }
 
+variable "google_oauth_client_id" {
+  description = "Google Sign-In Web OAuth client ID (public, not a secret). Token audience the backend verifies against. Empty = Google sign-in disabled."
+  type        = string
+  default     = ""
+}
+
 # ------------------------------------------------------------------------------
 # Integration credentials — stored in Secrets Manager, injected into ECS tasks.
 # Optional for Phase 0 bring-up; populated as each feature phase lands. Never

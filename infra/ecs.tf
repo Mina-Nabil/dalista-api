@@ -45,6 +45,15 @@ locals {
     { name = "DB_SSLMODE", value = "require" },
     { name = "GOOSE_DRIVER", value = "postgres" },
     { name = "GOOSE_MIGRATION_DIR", value = "/app/migrations" },
+    # Google Sign-In: the Web OAuth client ID (public identifier the backend
+    # verifies the ID-token audience against; not a secret, so plain env).
+    { name = "GOOGLE_OAUTH_CLIENT_ID", value = var.google_oauth_client_id },
+    # Item image storage → S3 (bytes persist across tasks/redeploys; served from
+    # the public bucket URL). Task-role creds are picked up from the environment.
+    { name = "STORAGE_DRIVER", value = "s3" },
+    { name = "STORAGE_S3_BUCKET", value = aws_s3_bucket.media.bucket },
+    { name = "STORAGE_S3_REGION", value = var.aws_region },
+    { name = "STORAGE_PUBLIC_BASE_URL", value = "https://${aws_s3_bucket.media.bucket}.s3.${var.aws_region}.amazonaws.com" },
   ]
 
   # Deploy workflow pushes a fresh ${env}-<sha> tag per commit and points the

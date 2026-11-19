@@ -43,6 +43,16 @@ output "app_secret_arn" {
   value       = aws_secretsmanager_secret.app.arn
 }
 
+output "media_bucket" {
+  description = "S3 bucket for item images (STORAGE_S3_BUCKET)"
+  value       = aws_s3_bucket.media.bucket
+}
+
+output "media_public_base_url" {
+  description = "Public base URL item image links are served from (STORAGE_PUBLIC_BASE_URL)"
+  value       = "https://${aws_s3_bucket.media.bucket}.s3.${var.aws_region}.amazonaws.com"
+}
+
 output "private_subnet_ids" {
   description = "Private subnet IDs (used by the deploy workflow's RunTask)"
   value       = [aws_subnet.private_a.id, aws_subnet.private_b.id]

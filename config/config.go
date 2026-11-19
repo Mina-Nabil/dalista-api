@@ -85,6 +85,10 @@ type Config struct {
 	StorageDriver        string `env:"STORAGE_DRIVER" envDefault:"local"`
 	StorageLocalDir      string `env:"STORAGE_LOCAL_DIR" envDefault:"/app/storage"`
 	StoragePublicBaseURL string `env:"STORAGE_PUBLIC_BASE_URL" envDefault:"http://localhost:8080/media"`
+	// S3 driver settings (used when STORAGE_DRIVER=s3). Credentials come from the
+	// ambient AWS environment (ECS task role), not config.
+	StorageS3Bucket string `env:"STORAGE_S3_BUCKET"`
+	StorageS3Region string `env:"STORAGE_S3_REGION"`
 }
 
 var cfg *Config

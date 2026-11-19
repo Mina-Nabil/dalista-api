@@ -10,6 +10,9 @@ front_end_url = "https://dashboard-staging.example.com"
 
 sentry_dsn = ""                        # fill when Sentry project exists
 
+# Google Sign-In Web OAuth client ID (public, not a secret). Enables Google login.
+google_oauth_client_id = ""            # e.g. 1234567890-abc.apps.googleusercontent.com
+
 # GitHub Actions OIDC trust (deploy role).
 #   github_org_id  = gh api orgs/<org> --jq .id
 #   github_repo_id = gh api repos/<org>/<repo> --jq .id

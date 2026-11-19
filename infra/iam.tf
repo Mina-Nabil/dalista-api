@@ -55,6 +55,21 @@ resource "aws_iam_role" "ecs_task" {
   })
 }
 
+# Runtime permission for the API to read/write item images in the media bucket.
+resource "aws_iam_role_policy" "ecs_task_media" {
+  name = "dalista-${var.environment}-media-access"
+  role = aws_iam_role.ecs_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+      Resource = "${aws_s3_bucket.media.arn}/*"
+    }]
+  })
+}
+
 # ------------------------------------------------------------------------------
 # GitHub Actions OIDC provider + deployer role
 #
